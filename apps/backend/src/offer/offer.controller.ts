@@ -18,7 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { OfferService } from './offer.service';
 import { CurrentUser } from 'src/decorators/current-user';
-import { CreateOfferDto, UpdateOfferDto } from '@dtos/offer.dto';
+import { CreateOfferDto, UpdateOfferDto } from 'src/dtos/offer.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiResponse } from 'src/types/global';
 import { offer } from 'src/generated/prisma/client';

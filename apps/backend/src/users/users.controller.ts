@@ -19,7 +19,7 @@ import { CurrentUser } from '../decorators/current-user';
 import { ApiResponse } from 'src/types/global';
 import { SafeUser } from 'src/types/user.types';
 import { Body, Put } from '@nestjs/common';
-import { UpdateUserDto } from '@dtos/user.dto';
+import { UpdateUserDto } from 'src/dtos/user.dto';
 
 @ApiTags('Users')
 @Controller('users')

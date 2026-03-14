@@ -21,10 +21,5 @@
     "noImplicitAny": true,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "src/*": ["./*"],
-      "@prisma/*": ["./src/prisma/*"],
-      "@dtos/*": ["./src/dtos/*"],
-    },
   },
 }

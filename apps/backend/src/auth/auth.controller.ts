@@ -1,4 +1,4 @@
-import { LoginDto, RegisterDto } from '@dtos/auth.dto';
+import { LoginDto, RegisterDto } from 'src/dtos/auth.dto';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
   ApiTags,

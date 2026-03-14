@@ -20,7 +20,7 @@ import { ApplicationService } from './application.service';
 import { ApiResponse } from 'src/types/global';
 import type { application } from 'src/generated/prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CreateApplicationDto } from '@dtos/application.dto';
+import { CreateApplicationDto } from 'src/dtos/application.dto';
 import { CurrentUser } from 'src/decorators/current-user';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Role } from 'src/decorators/role';

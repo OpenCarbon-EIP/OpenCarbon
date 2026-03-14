@@ -1,11 +1,11 @@
-import { CreateOfferDto, UpdateOfferDto } from '@dtos/offer.dto';
+import { CreateOfferDto, UpdateOfferDto } from 'src/dtos/offer.dto';
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { SAFE_USER_OMIT, UsersService } from 'src/users/users.service';
 import { OfferWithRelations } from 'src/types/offer.types';
 
