@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CONSULTANT
+  COMPANY
+}
+
+enum OfferStatus {
+  OPEN
+  CLOSED
+}
+
+enum MissionStatus {
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model user {
+  id String @id @default(uuid())
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role Role @default(CONSULTANT)
+
+  consultant consultant?
+  company company?
+}
+
+model consultant {
+  id String @id @default(uuid())
+  last_name String
+  first_name String
+  professional_title String
+  description String?
+  photo_url String?
+  rating_score Int @default(0)
+  is_verified Boolean @default(false)
+
+  id_user String @unique
+  user user @relation(fields: [id_user], references: [id])
+
+  certifications certification[]
+  applications application[]
+  legal legal?
+  missions mission[]
+}
+
+model certification {
+  id String @id @default(uuid())
+  certification_name String
+  certification_end_date DateTime
+  issuing_organization String
+  issue_date DateTime
+  evidence_url String?
+
+  id_consultant String
+  consultant consultant @relation(fields: [id_consultant], references: [id])
+}
+
+model company {
+  id String @id @default(uuid())
+  company_name String
+  industry_sector Json?
+  company_size Int?
+  description String?
+  logo_url String?
+
+  id_user String @unique
+  user user @relation(fields: [id_user], references: [id])
+
+  offers offer[]
+  legal legal?
+  missions mission[]
+}
+
+model offer {
+  id String @id @default(uuid())
+  title String
+  description String
+  budget Int
+  deadline DateTime
+  status OfferStatus @default(OPEN)
+  location String
+
+  id_company String
+  company company @relation(fields: [id_company], references: [id])
+
+  applications application[]
+}
+
+model application {
+  id String @id @default(uuid())
+  content String
+  status ApplicationStatus @default(PENDING)
+
+  id_offer String
+  offer offer @relation(fields: [id_offer], references: [id])
+
+  id_consultant String
+  consultant consultant @relation(fields: [id_consultant], references: [id])
+}
+
+model legal {
+  id String @id @default(uuid())
+  registration_number String @unique
+  iban String @unique
+  status String
+  address String
+
+  id_company String? @unique
+  company company? @relation(fields: [id_company], references: [id])
+
+  id_consultant String? @unique
+  consultant consultant? @relation(fields: [id_consultant], references: [id])
+}
+
+model mission {
+  id String @id @default(uuid())
+  start_date DateTime
+  end_date DateTime
+  estimated_end_date DateTime
+  progress Int @default(0)
+  payment_status String
+  status MissionStatus @default(ONGOING)
+
+  id_company String
+  company company @relation(fields: [id_company], references: [id])
+
+  id_consultant String
+  consultant consultant @relation(fields: [id_consultant], references: [id])
+}
