@@ -1,0 +1,87 @@
+# Ce fichier configure l'analyseur Dart pour ton projet Flutter.
+# Lance `flutter analyze` pour voir les problèmes détectés.
+
+include: package:flutter_lints/flutter.yaml
+
+formatter:
+  page_width: 120
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  strong-mode:
+    # Renforcer encore la sûreté de type
+    implicit-casts: false
+    implicit-dynamic: false
+
+  errors:
+    # On traite les mauvaises pratiques comme des erreurs pour garder un code très propre
+    unused_import: error
+    dead_code: error
+    missing_return: error
+    missing_required_param: error
+    invalid_override: error
+    todo: info
+
+linter:
+  rules:
+    # ----- Style général / lisibilité -----
+    always_declare_return_types: true
+    always_use_package_imports: true
+    avoid_print: true
+    avoid_unnecessary_containers: true
+    curly_braces_in_flow_control_structures: true
+    directives_ordering: true
+    prefer_single_quotes: true
+    prefer_final_locals: true
+    prefer_final_in_for_each: true
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_interpolation_to_compose_strings: true
+    prefer_if_null_operators: true
+    prefer_null_aware_operators: true
+    sort_constructors_first: true
+    sort_pub_dependencies: true
+    use_super_parameters: true
+    use_key_in_widget_constructors: true
+    use_named_constants: true
+    unawaited_futures: true
+
+    # ----- Nommage / conventions -----
+    camel_case_types: true
+    camel_case_extensions: true
+    library_names: true
+    file_names: true
+    constant_identifier_names: true
+    non_constant_identifier_names: true
+    library_prefixes: true
+
+    # ----- Null safety / sûreté -----
+    avoid_types_as_parameter_names: true
+    null_check_on_nullable_type_parameter: true
+    null_closures: true
+    prefer_is_not_empty: true
+    unnecessary_null_checks: true
+
+    # ----- Bonnes pratiques Flutter / widgets -----
+    use_full_hex_values_for_flutter_colors: true
+    avoid_redundant_argument_values: true
+    avoid_void_async: true
+    sized_box_for_whitespace: true
+    avoid_init_to_null: true
+
+    # ----- Clean code / architecture -----
+    avoid_function_literals_in_foreach_calls: true
+    avoid_positional_boolean_parameters: true
+    avoid_multiple_declarations_per_line: true
+    avoid_classes_with_only_static_members: false  # utile pour tes AppTypography, AppColors etc.
+    one_member_abstracts: false                     # pour laisser respirer tes interfaces/repositories
+    prefer_expression_function_bodies: true
+    only_throw_errors: true
+    avoid_catches_without_on_clauses: true
+    avoid_catching_errors: true
