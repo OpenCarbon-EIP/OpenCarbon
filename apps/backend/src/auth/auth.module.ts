@@ -8,7 +8,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UsersModule } from '../users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { RoleGuard } from './guards/role.guard';
-import { PrismaModule } from '@prisma/prisma.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [

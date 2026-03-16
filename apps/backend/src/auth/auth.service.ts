@@ -1,4 +1,4 @@
-import { RegisterDto, LoginDto } from '@dtos/auth.dto';
+import { RegisterDto, LoginDto } from 'src/dtos/auth.dto';
 import {
   Injectable,
   ConflictException,
@@ -11,7 +11,7 @@ import { hash, compare } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import type { JwtPayload, SafeUser } from 'src/types/user.types';
 import { AuthResponse } from 'src/types/auth.types';
-import { PrismaService } from '@prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from 'src/generated/prisma/client';
 
 @Injectable()
