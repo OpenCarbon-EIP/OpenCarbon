@@ -1,0 +1,32 @@
+name: flutter_poc
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_dotenv: ^6.0.0
+  flutter_secure_storage: ^10.0.0
+  flutter_svg: ^2.2.3
+  google_fonts: ^8.0.2
+  http: ^1.6.0
+  iconsax_flutter: ^1.0.1
+  intl: ^0.20.2
+  provider: ^6.1.5+1
+  shadcn_ui: ^0.50.2
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - lib/assets/
+    - .env
