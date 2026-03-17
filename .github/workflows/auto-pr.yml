@@ -1,0 +1,46 @@
+name: Auto PR to Main
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head dev --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          gh pr create \
+            --base main \
+            --head dev \
+            --title "Auto PR from dev into main" \
+            --body "This PR was automatically created to merge changes from \`dev\` to \`main\`.
+
+            ## Changes
+            This includes all commits that have been merged to the \`dev\` branch since the last release.
+
+            ## Checklist
+            - [ ] All tests are passing
+            - [ ] Code has been reviewed
+            - [ ] Ready for production deployment"
+        env:
+          GH_TOKEN: ${{ github.token }}
