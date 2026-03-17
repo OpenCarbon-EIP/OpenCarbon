@@ -1,0 +1,11 @@
+name: backend
+services:
+    postgres:
+        container_name: postgres-dev
+        environment:
+            - POSTGRES_USER=user
+            - POSTGRES_PASSWORD=password
+            - POSTGRES_DB=opencarbon
+        ports:
+            - 5432:5432
+        image: postgres
