@@ -14,6 +14,8 @@ import { AuthResponse } from 'src/types/auth.types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from 'src/generated/prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'node:crypto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +25,10 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {}
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
 
   private async generateAuthTokens(
     user: AuthenticatedUser,
@@ -36,17 +42,19 @@ export class AuthService {
     );
 
     const refresh_token = this.jwtService.sign(
-      { sub: user.id },
+      { sub: user.id, jti: randomUUID() },
       {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
         expiresIn: '30d',
       },
     );
 
+    const hashedRefreshToken = this.hashToken(refresh_token);
+
     await this.prisma.sessions.create({
       data: {
         user_id: user.id,
-        session_token: refresh_token,
+        session_token: hashedRefreshToken,
         is_valid: true,
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
       },
@@ -162,8 +170,23 @@ export class AuthService {
     user: AuthenticatedUser,
     refreshToken: string,
   ): Promise<AuthResponse> {
+    const hashedRefreshToken = this.hashToken(refreshToken);
+
+    const updated = await this.prisma.sessions.updateMany({
+      where: {
+        session_token: hashedRefreshToken,
+        is_valid: true,
+        expires_at: { gt: new Date() },
+      },
+      data: { is_valid: false },
+    });
+
+    if (updated.count === 1) {
+      return this.generateAuthTokens(user);
+    }
+
     const session = await this.prisma.sessions.findUnique({
-      where: { session_token: refreshToken },
+      where: { session_token: hashedRefreshToken },
     });
 
     if (!session) {
@@ -180,21 +203,18 @@ export class AuthService {
       );
     }
 
-    if (session.expires_at < new Date()) {
+    if (session.expires_at <= new Date()) {
       throw new UnauthorizedException('Refresh token expiré');
     }
 
-    await this.prisma.sessions.update({
-      where: { id: session.id },
-      data: { is_valid: false },
-    });
-
-    return this.generateAuthTokens(user);
+    throw new UnauthorizedException('Refresh token invalide');
   }
 
   async logout(refreshToken: string): Promise<void> {
+    const hashedRefreshToken = this.hashToken(refreshToken);
+
     const session = await this.prisma.sessions.findUnique({
-      where: { session_token: refreshToken },
+      where: { session_token: hashedRefreshToken },
     });
 
     if (session && session.is_valid) {
@@ -209,8 +229,10 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<SafeUser | null> {
+    const hashedRefreshToken = this.hashToken(refreshToken);
+
     const storedToken = await this.prisma.sessions.findUnique({
-      where: { session_token: refreshToken },
+      where: { session_token: hashedRefreshToken },
       include: { user: true },
     });
 
