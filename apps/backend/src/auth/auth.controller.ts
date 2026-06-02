@@ -5,9 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   Res,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,8 +19,10 @@ import { ApiResponse } from 'src/types/global';
 import { AuthResponse } from 'src/types/auth.types';
 import { RefreshTokenAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user';
-import type { Request, Response } from 'express';
-import { type AuthenticatedUser } from 'src/types/user.types';
+import { RefreshToken } from 'src/decorators/refresh-token';
+import type { Response } from 'express';
+import type { AuthenticatedUser } from 'src/types/user.types';
+import { THIRTY_DAYS } from 'src/utils/macros';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,7 +35,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
+      maxAge: THIRTY_DAYS,
     });
   }
 
@@ -84,12 +86,12 @@ export class AuthController {
   })
   async refreshToken(
     @CurrentUser() user: AuthenticatedUser,
-    @Req() req: Request,
+    @RefreshToken() refreshToken: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponse<AuthResponse>> {
-    const refreshToken =
-      (req.cookies as Record<string, string>)?.refresh_token ??
-      (req.body as Record<string, string>)?.refresh_token;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token manquant');
+    }
 
     const result = await this.authService.refreshToken(user, refreshToken);
     this.setRefreshCookie(res, result.refresh_token);
@@ -106,13 +108,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Log out and invalidate refresh token' })
   @SwaggerResponse({ status: 200, description: 'Logout successful' })
   async logout(
-    @Req() req: Request,
+    @RefreshToken() refreshToken: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponse<null>> {
-    const refreshToken =
-      (req.cookies as Record<string, string>)?.refresh_token ??
-      (req.body as Record<string, string>)?.refresh_token;
-
     if (refreshToken) {
       await this.authService.logout(refreshToken);
     }

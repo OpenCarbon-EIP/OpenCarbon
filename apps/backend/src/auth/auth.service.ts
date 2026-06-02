@@ -16,6 +16,7 @@ import { Role } from 'src/generated/prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import * as crypto from 'crypto';
+import { THIRTY_DAYS } from 'src/utils/macros';
 
 @Injectable()
 export class AuthService {
@@ -56,7 +57,7 @@ export class AuthService {
         user_id: user.id,
         session_token: hashedRefreshToken,
         is_valid: true,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+        expires_at: new Date(Date.now() + THIRTY_DAYS),
       },
     });
 
