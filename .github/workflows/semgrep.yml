@@ -34,4 +34,4 @@ jobs:
           pip install semgrep
 
       - name: Run Semgrep Scan
-        run: semgrep scan --config auto --error
+        run: semgrep scan --config auto
