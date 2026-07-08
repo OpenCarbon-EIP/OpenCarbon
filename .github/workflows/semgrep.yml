@@ -1,17 +1,23 @@
-name: Semgrep CI
+name: Backend & Infrastructure Security Scan
 
 on:
   push:
     branches: ["main", "dev"]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/**"
   pull_request:
     branches: ["main", "dev"]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
 
 jobs:
   semgrep:
-    name: Security Scan
+    name: Semgrep Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -28,4 +34,4 @@ jobs:
           pip install semgrep
 
       - name: Run Semgrep Scan
-        run: semgrep scan --config auto
+        run: semgrep scan --config auto --error
