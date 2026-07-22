@@ -1,0 +1,46 @@
+name: Flutter Security & Quality Scan
+
+on:
+  push:
+    branches: ["main", "dev"]
+    paths:
+      - "apps/mobile/**"
+  pull_request:
+    branches: ["main", "dev"]
+    paths:
+      - "apps/mobile/**"
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-security:
+    name: Flutter Security & Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.27.0"
+          channel: "stable"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Scan dependencies for vulnerabilities
+        run: flutter pub outdated --mode=security
+
+      - name: Run Flutter Static Analysis
+        run: flutter analyze
