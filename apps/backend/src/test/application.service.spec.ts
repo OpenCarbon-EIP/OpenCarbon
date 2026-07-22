@@ -3,7 +3,11 @@ import { ApplicationService } from '../application/application.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { ConsultantService } from '../consultant/consultant.service';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import type { application } from 'src/generated/prisma/client';
 import {
   createMockApplication,
@@ -132,7 +136,10 @@ describe('ApplicationService', () => {
         .spyOn(prismaService.application, 'findUnique')
         .mockResolvedValue(mockApp);
 
-      const result = await service.getApplicationById('application-123', 'user-123');
+      const result = await service.getApplicationById(
+        'application-123',
+        'user-123',
+      );
 
       expect(result).toEqual(mockApp);
     });
@@ -214,9 +221,7 @@ describe('ApplicationService', () => {
       jest
         .spyOn(prismaService.application, 'delete')
         .mockResolvedValue(mockApp);
-      jest
-        .spyOn(prismaService.application, 'findMany')
-        .mockResolvedValue([]);
+      jest.spyOn(prismaService.application, 'findMany').mockResolvedValue([]);
 
       await service.deleteApplication('application-123', 'consul-123');
 

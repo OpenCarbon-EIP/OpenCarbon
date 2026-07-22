@@ -32,7 +32,7 @@ export class ApplicationController {
   constructor(private readonly applicationService: ApplicationService) {}
 
   @Get('all')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Role('CONSULTANT', 'COMPANY')
   @ApiBearerAuth('JWT')
   @ApiOperation({
@@ -62,7 +62,7 @@ export class ApplicationController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth('JWT')
   @Role('CONSULTANT', 'COMPANY')
   @ApiOperation({ summary: 'Get a specific application by ID' })
