@@ -58,7 +58,7 @@ model sessions {
   ip_address String?
   is_valid Boolean @default(true)
 
-  user user @relation(fields: [user_id], references: [id])
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model consultant {

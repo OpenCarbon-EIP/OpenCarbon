@@ -1,0 +1,30 @@
+meta {
+  name: Register user
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/auth/register/email
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "email": "test.dev@opencarbon.com",
+    "password": "Test123@",
+    "role": "CONSULTANT",
+    "last_name": "Nolann",
+    "first_name": "Dubos",
+    "professional_title": "expert"
+  }
+}
+
+docs {
+  This request retrieves a list of users from the JSONPlaceholder API.
+}

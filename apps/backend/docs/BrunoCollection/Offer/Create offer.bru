@@ -1,0 +1,26 @@
+meta {
+  name: Create offer
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/offers/create
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Recherche un stage",
+    "description": "Nolann recherche un stage",
+    "budget": 10000,
+    "deadline": "2026-06-30T00:00:00.000Z",
+    "location": "Bordeaux"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

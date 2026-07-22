@@ -1,0 +1,27 @@
+meta {
+  name: Login user company
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:3000/auth/login/email
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "email": "company.dev@opencarbon.com",
+    "password": "Test123@"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
