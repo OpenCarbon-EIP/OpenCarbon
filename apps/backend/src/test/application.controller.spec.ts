@@ -23,6 +23,7 @@ describe('ApplicationController', () => {
             getApplicationById: jest.fn(),
             getAllApplicationsByUserId: jest.fn(),
             deleteApplication: jest.fn(),
+            checkApplicationAccess: jest.fn(),
           },
         },
       ],
@@ -77,7 +78,9 @@ describe('ApplicationController', () => {
     });
 
     it('should throw NotFoundException when application not found', async () => {
-      jest.spyOn(service, 'getApplicationById').mockResolvedValue(null);
+      jest
+        .spyOn(service, 'getApplicationById')
+        .mockRejectedValue(new NotFoundException('Application not found'));
 
       await expect(
         controller.getApplicationById('nonexistent-id', {
@@ -87,9 +90,13 @@ describe('ApplicationController', () => {
     });
 
     it('should throw ForbiddenException when user does not own the application', async () => {
-      const mockApp = createMockApplication();
-
-      jest.spyOn(service, 'getApplicationById').mockResolvedValue(mockApp);
+      jest
+        .spyOn(service, 'getApplicationById')
+        .mockRejectedValue(
+          new ForbiddenException(
+            'You do not have permission to access this application',
+          ),
+        );
 
       await expect(
         controller.getApplicationById('application-123', {

@@ -24,6 +24,7 @@ import { CreateApplicationDto } from 'src/dtos/application.dto';
 import { CurrentUser } from 'src/decorators/current-user';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Role } from 'src/decorators/role';
+import type { AuthenticatedUser } from 'src/types/user.types';
 
 @ApiTags('Applications')
 @Controller('applications')
@@ -32,6 +33,7 @@ export class ApplicationController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard)
+  @Role('CONSULTANT', 'COMPANY')
   @ApiBearerAuth('JWT')
   @ApiOperation({
     summary: 'Get all applications for the authenticated consultant',
@@ -43,7 +45,7 @@ export class ApplicationController {
   @SwaggerResponse({ status: 401, description: 'Unauthorized' })
   @SwaggerResponse({ status: 403, description: 'User not authenticated' })
   async getAllApplicationsByUserId(
-    @CurrentUser() user: Express.User,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ApiResponse<application[]>> {
     if (!user) {
       throw new ForbiddenException('User not authenticated');
@@ -62,6 +64,7 @@ export class ApplicationController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')
+  @Role('CONSULTANT', 'COMPANY')
   @ApiOperation({ summary: 'Get a specific application by ID' })
   @ApiParam({ name: 'id', description: 'Application UUID' })
   @SwaggerResponse({
@@ -76,23 +79,16 @@ export class ApplicationController {
   @SwaggerResponse({ status: 404, description: 'Application not found' })
   async getApplicationById(
     @Param('id') id: string,
-    @CurrentUser() user: Express.User,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ApiResponse<application>> {
     if (!user) {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const application = await this.applicationService.getApplicationById(id);
-
-    if (!application) {
-      throw new NotFoundException('Application not found');
-    }
-
-    if (application.id_consultant !== user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this application',
-      );
-    }
+    const application = await this.applicationService.getApplicationById(
+      id,
+      user.id,
+    );
 
     return {
       success: true,
@@ -118,7 +114,7 @@ export class ApplicationController {
   })
   async createApplication(
     @Body() createApplicationDto: CreateApplicationDto,
-    @CurrentUser() user: Express.User,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ApiResponse<application>> {
     if (!user) {
       throw new ForbiddenException('User not authenticated');
@@ -155,7 +151,7 @@ export class ApplicationController {
   @SwaggerResponse({ status: 404, description: 'Application not found' })
   async deleteApplication(
     @Param('id') id: string,
-    @CurrentUser() user: Express.User,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ApiResponse<application[]>> {
     if (!user) {
       throw new ForbiddenException('User not authenticated');

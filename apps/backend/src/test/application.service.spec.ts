@@ -3,7 +3,7 @@ import { ApplicationService } from '../application/application.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { ConsultantService } from '../consultant/consultant.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import type { application } from 'src/generated/prisma/client';
 import {
   createMockApplication,
@@ -121,27 +121,67 @@ describe('ApplicationService', () => {
   describe('getApplicationById', () => {
     it('should return an application when it exists', async () => {
       const mockApp = createMockApplication();
+      const mockUser = createMockUserConsultant();
+      const mockConsultant = createMockConsultant();
 
+      jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
+      jest
+        .spyOn(consultantService, 'getConsultantByUserId')
+        .mockResolvedValue(mockConsultant);
       jest
         .spyOn(prismaService.application, 'findUnique')
         .mockResolvedValue(mockApp);
 
-      const result = await service.getApplicationById('application-123');
+      const result = await service.getApplicationById('application-123', 'user-123');
 
       expect(result).toEqual(mockApp);
     });
 
     it('should throw BadRequestException if id is not provided', async () => {
-      await expect(service.getApplicationById('')).rejects.toThrow(
+      await expect(service.getApplicationById('', 'user-123')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should throw NotFoundException when application does not exist', async () => {
+      jest
+        .spyOn(prismaService.application, 'findUnique')
+        .mockResolvedValue(null);
+
+      await expect(
+        service.getApplicationById('nonexistent-id', 'user-123'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if user does not have access', async () => {
+      const mockApp = createMockApplication();
+      const mockUser = createMockUserConsultant();
+      const mockConsultant = createMockConsultant({ id: 'other-consultant' });
+
+      jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
+      jest
+        .spyOn(consultantService, 'getConsultantByUserId')
+        .mockResolvedValue(mockConsultant);
+      jest
+        .spyOn(prismaService.application, 'findUnique')
+        .mockResolvedValue(mockApp);
+
+      await expect(
+        service.getApplicationById('application-123', 'user-123'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('getAllApplicationsByUserId', () => {
     it('should return all applications for a user', async () => {
       const mockApps = createMockApplicationList(2);
+      const mockUser = createMockUserConsultant();
+      const mockConsultant = createMockConsultant();
 
+      jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
+      jest
+        .spyOn(consultantService, 'getConsultantByUserId')
+        .mockResolvedValue(mockConsultant);
       jest
         .spyOn(prismaService.application, 'findMany')
         .mockResolvedValue(mockApps);
@@ -161,13 +201,22 @@ describe('ApplicationService', () => {
   describe('deleteApplication', () => {
     it('should delete an application by id', async () => {
       const mockApp = createMockApplication();
+      const mockUser = createMockUserConsultant();
+      const mockConsultant = createMockConsultant();
 
+      jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
+      jest
+        .spyOn(consultantService, 'getConsultantByUserId')
+        .mockResolvedValue(mockConsultant);
       jest
         .spyOn(prismaService.application, 'findUnique')
         .mockResolvedValue(mockApp);
       jest
         .spyOn(prismaService.application, 'delete')
         .mockResolvedValue(mockApp);
+      jest
+        .spyOn(prismaService.application, 'findMany')
+        .mockResolvedValue([]);
 
       await service.deleteApplication('application-123', 'consul-123');
 
@@ -200,7 +249,13 @@ describe('ApplicationService', () => {
 
     it('should throw ForbiddenException if user does not own the application', async () => {
       const mockApp = createMockApplication();
+      const mockUser = createMockUserConsultant();
+      const mockConsultant = createMockConsultant({ id: 'other-consultant' });
 
+      jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
+      jest
+        .spyOn(consultantService, 'getConsultantByUserId')
+        .mockResolvedValue(mockConsultant);
       jest
         .spyOn(prismaService.application, 'findUnique')
         .mockResolvedValue(mockApp);
