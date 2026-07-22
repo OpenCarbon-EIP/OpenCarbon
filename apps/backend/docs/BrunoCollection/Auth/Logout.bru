@@ -1,0 +1,20 @@
+meta {
+  name: Logout
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: 
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

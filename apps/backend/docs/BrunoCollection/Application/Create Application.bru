@@ -1,0 +1,27 @@
+meta {
+  name: Create Application
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/applications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTFlNDkzMy0zNzljLTQxN2ItOWY0OC04NDQ2MmRiNWE3ZWMiLCJlbWFpbCI6InRlc3QuZGV2QG9wZW5jYXJib24uY29tIiwiaWF0IjoxNzg0NzI2NzQ0LCJleHAiOjE3ODQ3Mjc2NDR9.9TbuY4gZwzfimVmHORt8A-Zie4q4GuwuOxVBokXNTpM
+}
+
+body:json {
+  {
+    "id_offer": "d0d17aef-cb06-43de-b23a-1713d8363a7d",
+    "content": "Bonjour, je recherche un stage..."
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

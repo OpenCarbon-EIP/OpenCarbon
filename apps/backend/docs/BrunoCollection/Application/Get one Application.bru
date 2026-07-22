@@ -1,0 +1,20 @@
+meta {
+  name: Get one Application
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:3000/applications/aa36ce66-dcab-4db0-8cbd-1ae39d587cfe
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTFlNDkzMy0zNzljLTQxN2ItOWY0OC04NDQ2MmRiNWE3ZWMiLCJlbWFpbCI6InRlc3QuZGV2QG9wZW5jYXJib24uY29tIiwiaWF0IjoxNzg0NzI2NzQ0LCJleHAiOjE3ODQ3Mjc2NDR9.9TbuY4gZwzfimVmHORt8A-Zie4q4GuwuOxVBokXNTpM
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
