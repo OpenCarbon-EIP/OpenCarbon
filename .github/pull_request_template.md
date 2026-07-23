@@ -6,7 +6,7 @@ Please include a summary of the changes and the related issue. Please also inclu
 
 ## Related Links
 
-- **Plane.so Issue (Mandatory):** [Insert Plane.so issue link here]
+- **Plane.so Issue (Mandatory):** (Plane issue)[Insert Plane.so issue link here]
 
 ---
 

@@ -4,6 +4,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { SAFE_USER_OMIT } from 'src/users/users.service';
@@ -20,6 +21,8 @@ import { THIRTY_DAYS } from 'src/utils/macros';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -61,6 +64,10 @@ export class AuthService {
       },
     });
 
+    this.logger.log(
+      `Generated auth tokens for user ${user.id} (${user.email})`,
+    );
+
     return {
       access_token,
       refresh_token,
@@ -76,6 +83,9 @@ export class AuthService {
     const { email, password, role } = registerDto;
 
     const emailTrim = email.trim().toLowerCase();
+    this.logger.log(
+      `Registering user with email ${emailTrim} and role ${role}`,
+    );
 
     if (role === Role.CONSULTANT) {
       const { last_name, first_name, professional_title } = registerDto;
@@ -95,6 +105,9 @@ export class AuthService {
 
     const existingUsers = await this.usersService.getUserByEmail(emailTrim);
     if (existingUsers) {
+      this.logger.warn(
+        `Registration failed: Email ${emailTrim} already in use`,
+      );
       throw new ConflictException('Email already in use');
     }
 
@@ -138,7 +151,11 @@ export class AuthService {
         return createdUser;
       });
     } catch (error) {
-      if (error.code === 'P2002') {
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
         throw new ConflictException('Email already in use');
       }
       throw error;
@@ -151,16 +168,23 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const emailTrim = email.trim().toLowerCase();
+    this.logger.log(`User login attempt for email ${emailTrim}`);
 
     const user = await this.usersService.getUserByEmail(emailTrim);
 
     if (!user || !user.password) {
+      this.logger.warn(
+        `Failed login attempt (user not found) for email ${emailTrim}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid: boolean = await compare(password, user.password);
 
     if (!isPasswordValid) {
+      this.logger.warn(
+        `Failed login attempt (incorrect password) for email ${emailTrim}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -199,15 +223,22 @@ export class AuthService {
         where: { user_id: session.user_id },
         data: { is_valid: false },
       });
+      this.logger.warn(
+        `Token reuse detected for user ${session.user_id}. All sessions revoked.`,
+      );
       throw new UnauthorizedException(
         'Tentative de réutilisation détectée. Toutes vos sessions ont été révoquées.',
       );
     }
 
     if (session.expires_at <= new Date()) {
+      this.logger.warn(
+        `Expired refresh token attempt for user ${session.user_id}`,
+      );
       throw new UnauthorizedException('Refresh token expiré');
     }
 
+    this.logger.warn(`Invalid refresh token attempt`);
     throw new UnauthorizedException('Refresh token invalide');
   }
 
@@ -219,6 +250,7 @@ export class AuthService {
     });
 
     if (session && session.is_valid) {
+      this.logger.log(`Logging out session for user ${session.user_id}`);
       await this.prisma.sessions.update({
         where: { id: session.id },
         data: { is_valid: false },

@@ -7,8 +7,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from 'src/dtos/user.dto';
 import type { user } from 'src/generated/prisma/client';
 import type { SafeUser } from 'src/types/user.types';
-import { ConsultantService } from 'src/consultant/consultant.service';
-import { CompanyService } from 'src/company/company.service';
 import { hash } from 'bcrypt';
 
 export const SAFE_USER_OMIT = {
@@ -19,11 +17,7 @@ export const SAFE_USER_OMIT = {
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly consultantService: ConsultantService,
-    private readonly companyService: CompanyService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getUserById(id: string): Promise<SafeUser | null> {
     if (!id) {
