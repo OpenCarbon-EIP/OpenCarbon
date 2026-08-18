@@ -46,6 +46,19 @@ model user {
 
   consultant consultant?
   company company?
+  sessions sessions[]
+}
+
+model sessions {
+  id String @id @default(uuid())
+  user_id String
+  session_token String @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  ip_address String?
+  is_valid Boolean @default(true)
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model consultant {

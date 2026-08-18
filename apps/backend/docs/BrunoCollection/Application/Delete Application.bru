@@ -1,0 +1,16 @@
+meta {
+  name: Delete Application
+  type: http
+  seq: 1
+}
+
+delete {
+  url: http://localhost:3000/applications/aa36ce66-dcab-4db0-8cbd-1ae39d587cfe
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

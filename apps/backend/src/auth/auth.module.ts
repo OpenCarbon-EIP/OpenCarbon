@@ -9,6 +9,7 @@ import { UsersModule } from '../users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { RoleGuard } from './guards/role.guard';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { RefreshTokenStrategy } from './strategy/jwt-refresh.strategy';
 
 @Module({
   imports: [
@@ -25,7 +26,13 @@ import { PrismaModule } from 'src/prisma/prisma.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RoleGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RoleGuard,
+    RefreshTokenStrategy,
+  ],
   exports: [AuthService, JwtAuthGuard, RoleGuard],
 })
 export class AuthModule {}

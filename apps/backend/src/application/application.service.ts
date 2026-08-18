@@ -23,19 +23,60 @@ export class ApplicationService {
       throw new BadRequestException('User ID is required');
     }
 
-    return await this.prisma.application.findMany({
-      where: { id_consultant: userId },
-    });
+    const user = await this.userService.getUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role === 'CONSULTANT') {
+      const consultant =
+        await this.consultantService.getConsultantByUserId(userId);
+      if (!consultant) {
+        throw new NotFoundException('Consultant profile not found');
+      }
+      return await this.prisma.application.findMany({
+        where: { id_consultant: consultant.id },
+      });
+    } else if (user.role === 'COMPANY') {
+      const company = await this.prisma.company.findUnique({
+        where: { id_user: userId },
+      });
+      if (!company) {
+        throw new NotFoundException('Company profile not found');
+      }
+      return await this.prisma.application.findMany({
+        where: {
+          offer: {
+            id_company: company.id,
+          },
+        },
+      });
+    }
+
+    return [];
   }
 
-  async getApplicationById(id: string): Promise<application | null> {
+  async getApplicationById(id: string, userId: string): Promise<application> {
     if (!id) {
       throw new BadRequestException('Application ID is required');
     }
 
-    return await this.prisma.application.findUnique({
+    const application = await this.prisma.application.findUnique({
       where: { id },
     });
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    const hasAccess = await this.checkApplicationAccess(application, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException(
+        'You do not have permission to access this application',
+      );
+    }
+
+    return application;
   }
 
   async createApplication(
@@ -90,7 +131,10 @@ export class ApplicationService {
       throw new NotFoundException('Application not found');
     }
 
-    if (application.id_consultant !== userId) {
+    const consultant =
+      await this.consultantService.getConsultantByUserId(userId);
+
+    if (!consultant || application.id_consultant !== consultant.id) {
       throw new ForbiddenException(
         'You do not have permission to delete this application',
       );
@@ -101,5 +145,30 @@ export class ApplicationService {
     });
 
     return this.getAllApplicationsByUserId(userId);
+  }
+
+  async checkApplicationAccess(
+    application: application,
+    userId: string,
+  ): Promise<boolean> {
+    const user = await this.userService.getUserById(userId);
+    if (!user) return false;
+
+    if (user.role === 'CONSULTANT') {
+      const consultant =
+        await this.consultantService.getConsultantByUserId(userId);
+      return consultant ? application.id_consultant === consultant.id : false;
+    } else if (user.role === 'COMPANY') {
+      const company = await this.prisma.company.findUnique({
+        where: { id_user: userId },
+      });
+      if (!company) return false;
+      const offer = await this.prisma.offer.findUnique({
+        where: { id: application.id_offer },
+      });
+      return offer ? offer.id_company === company.id : false;
+    }
+
+    return false;
   }
 }
