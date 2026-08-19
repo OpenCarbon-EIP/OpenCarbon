@@ -9,6 +9,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -22,7 +23,11 @@ import { CurrentUser } from 'src/decorators/current-user';
 import { RefreshToken } from 'src/decorators/refresh-token';
 import type { Response } from 'express';
 import type { AuthenticatedUser } from 'src/types/user.types';
-import { THIRTY_DAYS } from 'src/utils/macros';
+import {
+  AUTH_THROTTLE_LIMIT,
+  AUTH_THROTTLE_TTL,
+  THIRTY_DAYS,
+} from 'src/utils/macros';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -40,6 +45,9 @@ export class AuthController {
   }
 
   @Post('register/email')
+  @Throttle({
+    default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL },
+  })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user (consultant or company)' })
   @SwaggerResponse({ status: 201, description: 'User registered successfully' })
@@ -58,6 +66,9 @@ export class AuthController {
   }
 
   @Post('login/email')
+  @Throttle({
+    default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log in with email and password' })
   @SwaggerResponse({ status: 200, description: 'Login successful' })
