@@ -1,0 +1,6 @@
+# Le backend (apps/backend) est volontairement EXCLU du workspace :
+# il conserve son propre pnpm-lock.yaml et s'installe indépendamment.
+# On ne liste donc que le mobile et les packages partagés.
+packages:
+  - "apps/mobile"
+  - "packages/*"
