@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "types": ["expo", "react", "react-native"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@assets/*": ["./assets/*"],
+      "@opencarbon/api": ["../../packages/api/src/index.ts"],
+      "@opencarbon/api/react": ["../../packages/api/src/react/index.ts"],
+      "@opencarbon/tokens": ["../../packages/tokens/src/index.ts"]
+    }
+  },
+  "include": ["src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}
