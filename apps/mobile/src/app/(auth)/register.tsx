@@ -12,7 +12,7 @@ export default function RegisterScreen() {
         <Text style={[styles.title, { color: theme.colors.primary }]}>Créer un compte</Text>
         <RegisterForm />
         <View style={styles.footer}>
-          <Text style={{ color: theme.colors.buttonText, fontFamily: 'Poppins' }}>Déjà inscrit ? </Text>
+          <Text style={{ color: theme.colors.onBackground, fontFamily: 'Poppins' }}>Déjà inscrit ? </Text>
           <Link href="/(auth)/login" style={{ color: theme.colors.primary, fontFamily: 'Poppins-SemiBold' }}>
             Se connecter
           </Link>

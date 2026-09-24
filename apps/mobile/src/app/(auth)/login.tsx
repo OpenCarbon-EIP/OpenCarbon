@@ -11,7 +11,7 @@ export default function LoginScreen() {
       <Text style={[styles.title, { color: theme.colors.primary }]}>OpenCarbon</Text>
       <LoginForm />
       <View style={styles.footer}>
-        <Text style={{ color: theme.colors.buttonText, fontFamily: 'Poppins' }}>Pas encore de compte ? </Text>
+        <Text style={{ color: theme.colors.onBackground, fontFamily: 'Poppins' }}>Pas encore de compte ? </Text>
         <Link href="/(auth)/register" style={{ color: theme.colors.primary, fontFamily: 'Poppins-SemiBold' }}>
           Créer un compte
         </Link>

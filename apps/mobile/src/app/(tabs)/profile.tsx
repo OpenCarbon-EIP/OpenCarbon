@@ -16,7 +16,7 @@ export default function ProfileScreen() {
     <ScreenContainer>
       <View style={styles.header}>
         <Text style={[styles.name, { color: theme.colors.primary }]}>{displayName}</Text>
-        <Text style={{ color: theme.colors.buttonText, fontFamily: 'Poppins' }}>{user?.email}</Text>
+        <Text style={{ color: theme.colors.onBackground, fontFamily: 'Poppins' }}>{user?.email}</Text>
         <Text style={{ color: theme.colors.tertiary, fontFamily: 'Poppins' }}>
           {user?.role === 'COMPANY' ? 'Entreprise' : 'Consultant'}
         </Text>
