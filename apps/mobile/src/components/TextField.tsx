@@ -18,7 +18,7 @@ export const TextField = ({ label, error, style, ...rest }: TextFieldProps) => {
           {
             borderColor: error ? theme.colors.danger : theme.colors.borderInput,
             borderRadius: theme.radius.sm,
-            color: theme.colors.buttonText,
+            color: theme.colors.onBackground,
           },
           style,
         ]}

@@ -8,7 +8,7 @@ export const Placeholder = ({ title }: { title: string }) => {
   return (
     <ScreenContainer centered>
       <Text style={[styles.title, { color: theme.colors.primary }]}>{title}</Text>
-      <Text style={[styles.subtitle, { color: theme.colors.buttonText }]}>Bientôt disponible</Text>
+      <Text style={[styles.subtitle, { color: theme.colors.onBackground }]}>Bientôt disponible</Text>
     </ScreenContainer>
   );
 };
