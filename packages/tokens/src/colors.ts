@@ -15,8 +15,10 @@ export const lightColors = {
   secondary: '#2B181F',
   tertiary: '#7F5539',
   background: '#FFFFFF',
+  /** Texte sur `primary` (label de bouton, onglet actif). */
   text: '#F8F9FA',
-  buttonText: '#182C24',
+  /** Texte courant posé sur `background`. */
+  onBackground: '#182C24',
   ...semanticColors,
 } as const;
 
@@ -25,8 +27,10 @@ export const darkColors = {
   secondary: '#2B181F',
   tertiary: '#7F5539',
   background: '#182C24',
+  /** Texte sur `primary` (label de bouton, onglet actif). */
   text: '#1C1C1C',
-  buttonText: '#182C24',
+  /** Texte courant posé sur `background`. */
+  onBackground: '#D6D0C9',
   ...semanticColors,
 } as const;
 
