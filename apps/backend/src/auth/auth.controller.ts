@@ -87,6 +87,9 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({
+    default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL },
+  })
   @UseGuards(RefreshTokenAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using a valid refresh token' })
