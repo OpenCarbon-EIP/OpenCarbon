@@ -7,6 +7,8 @@ on:
       - "apps/mobile/**"
       - "packages/**"
       - "package.json"
+      - "pnpm-lock.yaml"
+      - ".npmrc"
       - "pnpm-workspace.yaml"
       - "turbo.json"
       - "tsconfig.base.json"
@@ -17,6 +19,8 @@ on:
       - "apps/mobile/**"
       - "packages/**"
       - "package.json"
+      - "pnpm-lock.yaml"
+      - ".npmrc"
       - "pnpm-workspace.yaml"
       - "turbo.json"
       - "tsconfig.base.json"
@@ -27,7 +31,7 @@ permissions:
 
 jobs:
   quality:
-    name: Lint • Typecheck • Test
+    name: Format • Lint • Typecheck • Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -48,6 +52,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm run format:check
 
       - name: Lint
         run: pnpm run lint

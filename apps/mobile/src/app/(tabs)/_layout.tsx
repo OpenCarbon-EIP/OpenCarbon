@@ -1,21 +1,24 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useAuthContext } from '@opencarbon/api/react';
 import { TabIcon } from '@/components/TabIcon';
+import { SessionStatus } from '@/features/auth/SessionStatus';
 import { useTheme } from '@/theme/useTheme';
 
-// Groupe authentifié. Si pas connecté → redirige vers le login.
+// Groupe authentifié. Session non confirmée → SessionStatus (on garde l'onglet demandé
+// par un lien direct) ; pas connecté → redirige vers le login.
 export default function TabsLayout() {
   const { status } = useAuthContext();
   const theme = useTheme();
 
-  if (status !== 'authenticated') return <Redirect href="/(auth)/login" />;
+  if (status === 'guest') return <Redirect href="/(auth)/login" />;
+  if (status !== 'authenticated') return <SessionStatus />;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.borderInput,
+        tabBarInactiveTintColor: theme.colors.muted,
       }}
     >
       <Tabs.Screen

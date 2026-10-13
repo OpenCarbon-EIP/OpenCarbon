@@ -19,6 +19,14 @@ pnpm --filter @opencarbon/mobile start
 Puis `i` pour le simulateur iOS, `a` pour l'émulateur Android, ou scanner le QR code avec
 **Expo Go** sur un téléphone physique.
 
+> **iPhone physique : Expo Go ne fonctionne pas pour l'instant.** Le projet est en **SDK 56**, alors que la version
+> d'Expo Go de l'App Store ne supporte que le SDK le plus récent (57) et rejette le QR code. L'App Store ne permet
+> pas d'installer une ancienne version. En attendant la montée en SDK 57 :
+>
+> - **Simulateur iOS / émulateur Android** (`i` / `a`) : la CLI Expo y installe d'elle-même l'Expo Go du bon SDK ;
+> - **Android physique** : le Play Store a le même problème, mais l'APK Expo Go SDK 56 est téléchargeable depuis
+>   [expo.dev/go](https://expo.dev/go).
+
 Aucun dossier `ios/` ni `android/` n'est nécessaire : toutes les dépendances natives du projet
 sont embarquées dans Expo Go. Ne pas lancer `expo prebuild` sans décision d'équipe.
 

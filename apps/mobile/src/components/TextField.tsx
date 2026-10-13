@@ -12,7 +12,8 @@ export const TextField = ({ label, error, style, ...rest }: TextFieldProps) => {
     <View style={styles.wrapper}>
       <Text style={[styles.label, { color: theme.colors.primary }]}>{label}</Text>
       <TextInput
-        placeholderTextColor={theme.colors.borderInput}
+        accessibilityLabel={label}
+        placeholderTextColor={theme.colors.muted}
         style={[
           styles.input,
           {

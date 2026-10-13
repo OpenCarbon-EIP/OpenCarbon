@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { ROLE_LABELS } from '@opencarbon/api';
 import { useAuthContext, useLogout } from '@opencarbon/api/react';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Button } from '@/components/Button';
@@ -9,8 +10,7 @@ export default function ProfileScreen() {
   const { user } = useAuthContext();
   const logout = useLogout();
 
-  const displayName =
-    user?.consultant?.first_name ?? user?.company?.company_name ?? user?.email ?? 'Utilisateur';
+  const displayName = user?.consultant?.first_name ?? user?.company?.company_name ?? user?.email ?? 'Utilisateur';
 
   return (
     <ScreenContainer>
@@ -18,16 +18,11 @@ export default function ProfileScreen() {
         <Text style={[styles.name, { color: theme.colors.primary }]}>{displayName}</Text>
         <Text style={{ color: theme.colors.onBackground, fontFamily: 'Poppins' }}>{user?.email}</Text>
         <Text style={{ color: theme.colors.tertiary, fontFamily: 'Poppins' }}>
-          {user?.role === 'COMPANY' ? 'Entreprise' : 'Consultant'}
+          {user ? ROLE_LABELS[user.role] : null}
         </Text>
       </View>
       <View style={styles.spacer} />
-      <Button
-        label="Se déconnecter"
-        variant="secondary"
-        onPress={() => logout.mutate()}
-        loading={logout.isPending}
-      />
+      <Button label="Se déconnecter" variant="secondary" onPress={() => logout.mutate()} loading={logout.isPending} />
     </ScreenContainer>
   );
 }
