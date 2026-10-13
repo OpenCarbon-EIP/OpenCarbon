@@ -165,12 +165,17 @@ injections** de l'app hôte, et c'est ce qui rend le package agnostique :
 
 Le web injectera une base URL Next et un storage où le refresh est un no-op (cookie httpOnly).
 
-Il expose un état à trois valeurs — `loading` | `authenticated` | `guest` — plus `user`, `client`, et les actions
-`login` / `register` / `logout`.
+Il expose un état à quatre valeurs — `loading` | `authenticated` | `guest` | `unreachable` — plus `user`, `client`,
+et les actions `login` / `register` / `logout` / `retry`.
 
 **Hydratation au démarrage** : au montage, si un access token existe en SecureStore, il appelle `/users/me`. Succès →
-`authenticated`. Échec → purge du storage et `guest`. C'est pour ça que l'état `loading` existe : sans lui, un
-utilisateur déjà connecté verrait l'écran de login clignoter le temps de la lecture asynchrone du Keychain.
+`authenticated`. `AuthFailure` (le backend a rejeté la session, refresh compris) → purge du storage et `guest`. Toute
+autre erreur (réseau coupé, 5xx) → `unreachable` **en conservant les tokens** : l'app propose `retry()` plutôt que de
+déconnecter l'utilisateur pour une panne passagère. L'état `loading` existe pour qu'un utilisateur déjà connecté ne
+voie pas l'écran de login clignoter le temps de la lecture asynchrone du Keychain.
+
+L'hydratation est **versionnée** : un `login`, `register` ou `logout` lancé pendant qu'elle tourne la rend périmée, et
+son résultat est ignoré (il ne peut plus écraser la nouvelle session ni purger ses tokens).
 
 `client` est exposé volontairement : les futures features (offres, messages) doivent réutiliser **cette** instance
 de `HttpClient`, pas en créer une autre — sinon elles perdent le refresh single-flight et le callback de logout.
@@ -237,11 +242,15 @@ entre parenthèses sont des _groupes_ — ils structurent la navigation sans app
 
 La protection des routes repose sur trois gardes complémentaires :
 
-| Fichier                                              | Comportement                                                 |
-| ---------------------------------------------------- | ------------------------------------------------------------ |
-| [`index.tsx`](src/app/index.tsx)                     | `loading` → spinner ; `authenticated` → tabs ; sinon → login |
-| [`(auth)/_layout.tsx`](<src/app/(auth)/_layout.tsx>) | Si `authenticated` → renvoie vers les tabs                   |
-| [`(tabs)/_layout.tsx`](<src/app/(tabs)/_layout.tsx>) | Si `≠ authenticated` → renvoie vers le login                 |
+| Fichier                                              | Comportement                                                               |
+| ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| [`index.tsx`](src/app/index.tsx)                     | `authenticated` → tabs ; `guest` → login ; sinon → `SessionStatus`         |
+| [`(auth)/_layout.tsx`](<src/app/(auth)/_layout.tsx>) | `authenticated` → tabs ; `guest` → écrans d'auth ; sinon → `SessionStatus` |
+| [`(tabs)/_layout.tsx`](<src/app/(tabs)/_layout.tsx>) | `guest` → login ; `authenticated` → onglets ; sinon → `SessionStatus`      |
+
+[`SessionStatus`](src/features/auth/SessionStatus.tsx) affiche un spinner pendant `loading`, et l'écran « Serveur
+injoignable » (réessayer / utiliser un autre compte) pendant `unreachable`. Les layouts de groupe ne redirigent
+qu'une fois la session tranchée : un lien direct vers un onglet atterrit bien sur cet onglet.
 
 Le point d'entrée déclaré est `expo-router/entry` (champ `main` du `package.json`), et
 `experiments.typedRoutes: true` dans [app.config.ts](app.config.ts) génère `.expo/types/router.d.ts` — les `href`
@@ -348,7 +357,7 @@ appelant ne manipule l'enveloppe.
 | Écran profil                    | ✅ identité + déconnexion                          |
 | Dashboard / Missions / Messages | 🚧 `<Placeholder />` — « Bientôt disponible »      |
 | Schémas `offer` / `application` | 🚧 stubs Zod prêts, aucun service ni hook          |
-| Tests                           | ❌ aucun — le script `test` est un `echo`          |
+| Tests                           | 🚧 `@opencarbon/api` (vitest) ; mobile : aucun     |
 | Build natif (EAS, icônes)       | ❌ non configuré — Expo Go uniquement              |
 
 Le squelette est complet et cohérent ; ce qui manque, ce sont les features métier par-dessus. Pour en ajouter une,
@@ -363,40 +372,34 @@ importance.
 
 ### À regarder en priorité
 
-1. **Deep link pendant l'hydratation.** [`(tabs)/_layout.tsx`](<src/app/(tabs)/_layout.tsx>) teste
-   `status !== 'authenticated'`, ce qui inclut `loading`. Un utilisateur connecté qui ouvre un lien direct vers un
-   onglet sera renvoyé au login le temps de la lecture SecureStore, puis ramené. `index.tsx` gère bien ce cas, pas
-   les layouts de groupe. Un `if (status === 'loading') return null;` dans les deux `_layout` de groupe suffirait.
-
-2. **Effet de bord pendant le rendu.** Dans [`AuthProvider.tsx`](../../packages/api/src/react/AuthProvider.tsx),
+1. **Effet de bord pendant le rendu.** Dans [`AuthProvider.tsx`](../../packages/api/src/react/AuthProvider.tsx),
    `resetSession.current = () => {…}` est affecté dans le corps du composant, hors `useEffect`. Ça fonctionne
    aujourd'hui mais viole les règles de pureté du rendu React et devient réellement risqué en mode concurrent.
    Un `useCallback` + `useEffect` d'assignation lèverait l'ambiguïté.
 
-3. **Déballage d'enveloppe trop permissif.** `HttpClient.parse` fait `'data' in body` pour décider de déballer. Un
+2. **Déballage d'enveloppe trop permissif.** `HttpClient.parse` fait `'data' in body` pour décider de déballer. Un
    futur endpoint dont la réponse _nue_ contiendrait légitimement une clé `data` serait mal interprété. Tester
    `'success' in body && 'data' in body` serait plus sûr.
 
 ### Moins urgent
 
-4. **Aucun test.** Le socle le plus rentable à couvrir en premier : `mapHttpError`, le refresh single-flight de
-   `HttpClient`, et `RegisterSchema` (l'union discriminée). Ce sont des fonctions pures sans dépendance native, donc
-   testables sans harnais React Native.
+3. **Tests mobile.** `@opencarbon/api` est couvert (refresh, erreurs, hydratation). Côté app, rien encore :
+   `jest-expo` + `@testing-library/react-native` sur les formulaires d'auth.
 
-5. **`useMe` avec `initialData`.** Combiné à `staleTime: 30_000`, la donnée initiale est considérée fraîche : le
+4. **`useMe` avec `initialData`.** Combiné à `staleTime: 30_000`, la donnée initiale est considérée fraîche : le
    hook ne refetchera pas avant 30 s. C'est probablement le comportement voulu, mais autant l'acter.
 
-6. **Dark mode jamais relu visuellement.** La palette sombre est câblée et fonctionnelle, mais `darkColors.text`
+5. **Dark mode jamais relu visuellement.** La palette sombre est câblée et fonctionnelle, mais `darkColors.text`
    vaut `#1C1C1C` (sombre) sur `background` `#182C24` (sombre aussi) — à vérifier sur écran, notamment le contraste
    du label des boutons.
 
-7. **Champ `description` absent de l'inscription.** Il est optionnel dans `RegisterSchema` pour les deux rôles, mais
+6. **Champ `description` absent de l'inscription.** Il est optionnel dans `RegisterSchema` pour les deux rôles, mais
    [`RegisterForm`](src/features/auth/RegisterForm.tsx) ne l'expose pas. Volontaire ou oubli ?
 
-8. **Messages d'erreur bruts.** `login.error.message` affiche directement le message du backend. Acceptable en dev,
+7. **Messages d'erreur bruts.** `login.error.message` affiche directement le message du backend. Acceptable en dev,
    à repasser avant une démo publique.
 
-9. **Pas de configuration de build natif.** [app.config.ts](app.config.ts) n'a ni `ios.bundleIdentifier`, ni
+8. **Pas de configuration de build natif.** [app.config.ts](app.config.ts) n'a ni `ios.bundleIdentifier`, ni
    `android.package`, ni icône, ni splash. Sans conséquence pour Expo Go, bloquant dès qu'on voudra un build EAS.
 
 ---
