@@ -6,6 +6,14 @@ export default [
   ...baseConfig,
   {
     // Fichiers de config CommonJS (Node) et artefacts générés : hors lint TS/ESM.
-    ignores: ['.expo/**', 'expo-env.d.ts', 'metro.config.js', 'babel.config.js', 'eslint.config.mjs'],
+    ignores: [
+      '.expo/**',
+      'expo-env.d.ts',
+      'metro.config.js',
+      'babel.config.js',
+      'jest.config.js',
+      'test/svg-mock.js',
+      'eslint.config.mjs',
+    ],
   },
 ];

@@ -5,7 +5,7 @@
     "jsx": "react-jsx",
     "moduleResolution": "Bundler",
     "baseUrl": ".",
-    "types": ["expo", "react", "react-native"],
+    "types": ["expo", "react", "react-native", "jest"],
     "paths": {
       "@/*": ["./src/*"],
       "@assets/*": ["./assets/*"],

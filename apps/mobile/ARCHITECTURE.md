@@ -68,10 +68,13 @@ apps/mobile/src/
 │       └── profile.tsx       #   implémenté (identité + déconnexion)
 ├── components/               # UI générique, sans logique métier
 │   ├── Button.tsx  TextField.tsx  ScreenContainer.tsx
+│   ├── FormTextField.tsx     # TextField branché sur react-hook-form
 │   ├── TabIcon.tsx           # SVG bi-état (stroke / filled)
 │   └── Placeholder.tsx       # écran « Bientôt disponible »
 ├── features/auth/            # composition métier
-│   ├── LoginForm.tsx  RegisterForm.tsx  RoleToggle.tsx
+│   ├── LoginForm.tsx  RegisterForm.tsx  RoleToggle.tsx  PasswordRules.tsx
+│   ├── SessionStatus.tsx     # spinner d'hydratation / « Serveur injoignable »
+│   └── *.test.tsx            # tests jest-expo + Testing Library
 ├── config/env.ts             # lecture + validation de EXPO_PUBLIC_API_BASE_URL
 ├── lib/queryClient.ts        # instance React Query
 ├── storage/                  # adaptateur expo-secure-store → TokenStorage
@@ -266,9 +269,10 @@ sont donc **typés** : une route inexistante est une erreur de compilation.
 
 ```
 SafeAreaProvider
-└── QueryClientProvider        ← AuthProvider appelle useQueryClient()
-    └── AuthProvider           ← tout le reste consomme useAuthContext()
-        └── Slot               ← la route courante
+└── ThemeProvider              ← thème du navigateur (expo-router), dérivé de nos tokens
+    └── QueryClientProvider    ← AuthProvider appelle useQueryClient()
+        └── AuthProvider       ← tout le reste consomme useAuthContext()
+            └── Slot           ← la route courante
 ```
 
 Il gère aussi le chargement des polices (`useFonts`) et retient le splash screen tant qu'elles ne sont pas prêtes
@@ -278,7 +282,13 @@ Il gère aussi le chargement des polices (`useFonts`) et retient le splash scree
 
 Tous suivent le même moule : props typées, `useTheme()` pour les couleurs, `StyleSheet.create` pour le statique,
 style inline pour ce qui dépend du thème. `Button` gère `loading` (spinner) et `disabled` ; `TextField` gère l'état
-`error` (bordure + message).
+`error` (bordure + message) et expose son `label` comme nom accessible. `ScreenContainer scrollable` enveloppe le
+contenu dans `KeyboardAvoidingView` + `ScrollView` pour les écrans de formulaire.
+
+Les formulaires passent par **react-hook-form + `zodResolver`** avec les schémas de `@opencarbon/api` : pas de
+`useState` par champ, et une erreur par champ via [`FormTextField`](src/components/FormTextField.tsx). Les règles du
+mot de passe (`PASSWORD_RULES`, miroir de `@IsStrongPassword()`) servent à la fois au schéma et à l'affichage en
+temps réel de [`PasswordRules`](src/features/auth/PasswordRules.tsx).
 
 ### Icônes SVG
 
@@ -347,18 +357,18 @@ appelant ne manipule l'enveloppe.
 
 ## 10. État réel de l'implémentation
 
-| Domaine                         | État                                               |
-| ------------------------------- | -------------------------------------------------- |
-| Design tokens + dark mode       | ✅ complet, câblé                                  |
-| Couche HTTP + erreurs           | ✅ complet (refresh single-flight, retry, mapping) |
-| Auth (login/register/me)        | ✅ complet de bout en bout                         |
-| Session + persistance           | ✅ complet (SecureStore, hydratation au boot)      |
-| Navigation + gardes             | ✅ complet, routes typées                          |
-| Écran profil                    | ✅ identité + déconnexion                          |
-| Dashboard / Missions / Messages | 🚧 `<Placeholder />` — « Bientôt disponible »      |
-| Schémas `offer` / `application` | 🚧 stubs Zod prêts, aucun service ni hook          |
-| Tests                           | 🚧 `@opencarbon/api` (vitest) ; mobile : aucun     |
-| Build natif (EAS, icônes)       | ❌ non configuré — Expo Go uniquement              |
+| Domaine                         | État                                                          |
+| ------------------------------- | ------------------------------------------------------------- |
+| Design tokens + dark mode       | ✅ complet, câblé                                             |
+| Couche HTTP + erreurs           | ✅ complet (refresh single-flight, retry, mapping)            |
+| Auth (login/register/me)        | ✅ complet de bout en bout                                    |
+| Session + persistance           | ✅ complet (SecureStore, hydratation au boot)                 |
+| Navigation + gardes             | ✅ complet, routes typées                                     |
+| Écran profil                    | ✅ identité + déconnexion                                     |
+| Dashboard / Missions / Messages | 🚧 `<Placeholder />` — « Bientôt disponible »                 |
+| Schémas `offer` / `application` | 🚧 stubs Zod prêts, aucun service ni hook                     |
+| Tests                           | ✅ `@opencarbon/api` (vitest), formulaires d'auth (jest-expo) |
+| Build natif (EAS, icônes)       | ❌ non configuré — Expo Go uniquement                         |
 
 Le squelette est complet et cohérent ; ce qui manque, ce sont les features métier par-dessus. Pour en ajouter une,
 le chemin est balisé : schéma Zod → service → hook → écran.
@@ -383,23 +393,20 @@ importance.
 
 ### Moins urgent
 
-3. **Tests mobile.** `@opencarbon/api` est couvert (refresh, erreurs, hydratation). Côté app, rien encore :
-   `jest-expo` + `@testing-library/react-native` sur les formulaires d'auth.
-
-4. **`useMe` avec `initialData`.** Combiné à `staleTime: 30_000`, la donnée initiale est considérée fraîche : le
+3. **`useMe` avec `initialData`.** Combiné à `staleTime: 30_000`, la donnée initiale est considérée fraîche : le
    hook ne refetchera pas avant 30 s. C'est probablement le comportement voulu, mais autant l'acter.
 
-5. **Dark mode jamais relu visuellement.** La palette sombre est câblée et fonctionnelle, mais `darkColors.text`
+4. **Dark mode jamais relu visuellement.** La palette sombre est câblée et fonctionnelle, mais `darkColors.text`
    vaut `#1C1C1C` (sombre) sur `background` `#182C24` (sombre aussi) — à vérifier sur écran, notamment le contraste
    du label des boutons.
 
-6. **Champ `description` absent de l'inscription.** Il est optionnel dans `RegisterSchema` pour les deux rôles, mais
+5. **Champ `description` absent de l'inscription.** Il est optionnel dans `RegisterSchema` pour les deux rôles, mais
    [`RegisterForm`](src/features/auth/RegisterForm.tsx) ne l'expose pas. Volontaire ou oubli ?
 
-7. **Messages d'erreur bruts.** `login.error.message` affiche directement le message du backend. Acceptable en dev,
+6. **Messages d'erreur bruts.** `login.error.message` affiche directement le message du backend. Acceptable en dev,
    à repasser avant une démo publique.
 
-8. **Pas de configuration de build natif.** [app.config.ts](app.config.ts) n'a ni `ios.bundleIdentifier`, ni
+7. **Pas de configuration de build natif.** [app.config.ts](app.config.ts) n'a ni `ios.bundleIdentifier`, ni
    `android.package`, ni icône, ni splash. Sans conséquence pour Expo Go, bloquant dès qu'on voudra un build EAS.
 
 ---

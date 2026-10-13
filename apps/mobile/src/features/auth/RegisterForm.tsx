@@ -1,84 +1,76 @@
-import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRegister } from '@opencarbon/api/react';
-import { RegisterSchema, type RegisterInput, type Role } from '@opencarbon/api';
+import { RegisterSchema, type RegisterInput } from '@opencarbon/api';
 import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
+import { FormTextField } from '@/components/FormTextField';
 import { useTheme } from '@/theme/useTheme';
+import { PasswordRules } from './PasswordRules';
 import { RoleToggle } from './RoleToggle';
+
+// Saisie numérique optionnelle : champ vide → undefined, sinon le nombre tapé.
+const parseCompanySize = (text: string) => {
+  const digits = text.replace(/\D/g, '');
+  return digits ? Number(digits) : undefined;
+};
 
 export const RegisterForm = () => {
   const theme = useTheme();
   const register = useRegister();
-
-  const [role, setRole] = useState<Role>('CONSULTANT');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  // Consultant
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [professionalTitle, setProfessionalTitle] = useState('');
-  // Company
-  const [companyName, setCompanyName] = useState('');
-  const [companySize, setCompanySize] = useState('');
-
-  const [fieldError, setFieldError] = useState<string | null>(null);
-
-  const onSubmit = () => {
-    setFieldError(null);
-    const payload: RegisterInput =
-      role === 'CONSULTANT'
-        ? { role, email, password, first_name: firstName, last_name: lastName, professional_title: professionalTitle }
-        : {
-            role,
-            email,
-            password,
-            company_name: companyName,
-            ...(companySize ? { company_size: Number(companySize) } : {}),
-          };
-
-    const parsed = RegisterSchema.safeParse(payload);
-    if (!parsed.success) {
-      setFieldError(parsed.error.issues[0]?.message ?? 'Champs invalides');
-      return;
-    }
-    register.mutate(parsed.data);
-  };
+  const { control, handleSubmit, setValue } = useForm<RegisterInput>({
+    resolver: zodResolver(RegisterSchema),
+    defaultValues: {
+      role: 'CONSULTANT',
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+      professional_title: '',
+    },
+  });
+  const role = useWatch({ control, name: 'role' });
+  const password = useWatch({ control, name: 'password' });
 
   return (
     <View style={styles.form}>
-      <RoleToggle value={role} onChange={setRole} />
-      <TextField
+      <RoleToggle value={role} onChange={(next) => setValue('role', next)} />
+      <FormTextField
+        control={control}
+        name="email"
         label="Email"
-        value={email}
-        onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
         autoComplete="email"
       />
-      <TextField label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry />
+      <FormTextField control={control} name="password" label="Mot de passe" secureTextEntry />
+      <PasswordRules password={password} />
 
       {role === 'CONSULTANT' ? (
         <>
-          <TextField label="Prénom" value={firstName} onChangeText={setFirstName} />
-          <TextField label="Nom" value={lastName} onChangeText={setLastName} />
-          <TextField label="Titre professionnel" value={professionalTitle} onChangeText={setProfessionalTitle} />
+          <FormTextField control={control} name="first_name" label="Prénom" />
+          <FormTextField control={control} name="last_name" label="Nom" />
+          <FormTextField control={control} name="professional_title" label="Titre professionnel" />
         </>
       ) : (
         <>
-          <TextField label="Nom de l'entreprise" value={companyName} onChangeText={setCompanyName} />
-          <TextField
+          <FormTextField control={control} name="company_name" label="Nom de l'entreprise" />
+          <FormTextField
+            control={control}
+            name="company_size"
             label="Taille de l'entreprise (optionnel)"
-            value={companySize}
-            onChangeText={setCompanySize}
             keyboardType="number-pad"
+            parse={parseCompanySize}
           />
         </>
       )}
 
-      {fieldError ? <Text style={{ color: theme.colors.danger }}>{fieldError}</Text> : null}
       {register.isError ? <Text style={{ color: theme.colors.danger }}>{register.error.message}</Text> : null}
-      <Button label="Créer mon compte" onPress={onSubmit} loading={register.isPending} />
+      <Button
+        label="Créer mon compte"
+        onPress={handleSubmit((data) => register.mutate(data))}
+        loading={register.isPending}
+      />
     </View>
   );
 };

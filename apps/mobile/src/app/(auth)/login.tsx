@@ -7,7 +7,7 @@ import { useTheme } from '@/theme/useTheme';
 export default function LoginScreen() {
   const theme = useTheme();
   return (
-    <ScreenContainer centered>
+    <ScreenContainer centered scrollable>
       <Text style={[styles.title, { color: theme.colors.primary }]}>OpenCarbon</Text>
       <LoginForm />
       <View style={styles.footer}>

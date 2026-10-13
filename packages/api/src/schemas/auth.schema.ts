@@ -11,10 +11,29 @@ export const LoginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof LoginSchema>;
 
+/** Symboles reconnus par validator.js (utilisé par @IsStrongPassword() côté backend). */
+const PASSWORD_SYMBOLS = /[-#!$@£%^&*()_+|~=`{}[\]:";'<>?,./\\ ]/;
+
+/**
+ * Règles de @IsStrongPassword() (valeurs par défaut de validator.js), exposées une par une
+ * pour que l'UI puisse afficher leur état en temps réel.
+ */
+export const PASSWORD_RULES = [
+  { label: '8 caractères minimum', test: (value: string) => value.length >= 8 },
+  { label: 'Une minuscule', test: (value: string) => /[a-z]/.test(value) },
+  { label: 'Une majuscule', test: (value: string) => /[A-Z]/.test(value) },
+  { label: 'Un chiffre', test: (value: string) => /[0-9]/.test(value) },
+  { label: 'Un symbole', test: (value: string) => PASSWORD_SYMBOLS.test(value) },
+] as const;
+
+export const PasswordSchema = z
+  .string()
+  .refine((value) => PASSWORD_RULES.every((rule) => rule.test(value)), 'Mot de passe trop faible');
+
 const consultantRegister = z.object({
   role: z.literal('CONSULTANT'),
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Mot de passe trop court'),
+  password: PasswordSchema,
   last_name: z.string().min(1, 'Nom requis'),
   first_name: z.string().min(1, 'Prénom requis'),
   professional_title: z.string().min(1, 'Titre professionnel requis'),
@@ -24,9 +43,9 @@ const consultantRegister = z.object({
 const companyRegister = z.object({
   role: z.literal('COMPANY'),
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Mot de passe trop court'),
+  password: PasswordSchema,
   company_name: z.string().min(1, "Nom de l'entreprise requis"),
-  company_size: z.number().int().positive().optional(),
+  company_size: z.number().int().positive("Taille d'entreprise invalide").optional(),
   description: z.string().optional(),
 });
 
