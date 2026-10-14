@@ -22,15 +22,27 @@ export const createMockOfferWithRelations = (
     id: 'company-uuid',
     description: 'We are a company that cares about the environment.',
     company_size: 500,
-    id_user: 'user-123',
     company_name: 'My Company',
     industry_sector: 'Technology',
     logo_url: null,
-    user: {
-      id: 'user-123',
-      email: 'company@example.com',
-      role: 'COMPANY',
-    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    members: [
+      {
+        id: 'member-123',
+        id_company: 'company-uuid',
+        id_user: 'user-123',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        user: {
+          id: 'user-123',
+          email: 'company@example.com',
+          role: 'COMPANY',
+        },
+      },
+    ],
   },
   ...overrides,
 });
@@ -56,10 +68,11 @@ export const createMockCompany = (overrides?: Partial<company>): company => ({
   id: 'company-uuid',
   description: 'We are a company that cares about the environment.',
   company_size: 500,
-  id_user: 'user-123',
   company_name: 'My Company',
   industry_sector: 'Technology',
   logo_url: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
   ...overrides,
 });
 

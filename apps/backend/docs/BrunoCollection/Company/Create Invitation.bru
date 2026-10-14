@@ -1,0 +1,22 @@
+meta {
+  name: Create Invitation
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3000/companies/:id/invitations
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "email": "nolann.dbs@gmail.com",
+    "role": "MEMBER"
+  }
+}

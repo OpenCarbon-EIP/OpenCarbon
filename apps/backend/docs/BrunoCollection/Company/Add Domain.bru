@@ -1,0 +1,21 @@
+meta {
+  name: Add Domain
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/companies/:id/domains
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "domain": "epitech.eu"
+  }
+}

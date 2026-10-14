@@ -1,0 +1,16 @@
+meta {
+  name: Approve Member
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:3000/companies/:id/members/:userId/approve
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+  id: 
+}

@@ -29,7 +29,11 @@ export class UsersService {
       omit: SAFE_USER_OMIT,
       include: {
         consultant: true,
-        company: true,
+        company_members: {
+          include: {
+            company: true,
+          },
+        },
       },
     });
   }
@@ -44,7 +48,7 @@ export class UsersService {
     const { email, password, role } = createUserDto;
 
     if (!email || !password) {
-      throw new BadRequestException('Email, name, and password are required');
+      throw new BadRequestException('Email and password are required');
     }
 
     return await this.prisma.user.create({
@@ -53,32 +57,34 @@ export class UsersService {
         password,
         ...(role && { role }),
       },
+      omit: SAFE_USER_OMIT,
+      include: {
+        consultant: true,
+        company_members: {
+          include: {
+            company: true,
+          },
+        },
+      },
     });
   }
 
   async updateUser(id: string, updateData: UpdateUserDto): Promise<SafeUser> {
-    const {
-      email,
-      password,
-      first_name,
-      last_name,
-      photo_url,
-      description,
-      company_name,
-    } = updateData;
+    const { email, password, first_name, last_name, photo_url, description } =
+      updateData;
 
-    const user = await this.getUserById(id);
+    const existingUser = await this.getUserById(id);
 
-    if (!user) {
+    if (!existingUser) {
       throw new NotFoundException('User not found');
     }
 
     const updateUserData: Partial<user> = {};
 
     if (email) {
-      const existingUser = await this.getUserByEmail(email);
+      const emailUser = await this.getUserByEmail(email);
 
-      if (existingUser && existingUser.id !== id) {
+      if (emailUser && emailUser.id !== id) {
         throw new BadRequestException('Email already in use');
       }
       updateUserData.email = email;
@@ -89,7 +95,7 @@ export class UsersService {
       updateUserData.password = await hash(password, saltRounds);
     }
 
-    if (user.role === 'CONSULTANT') {
+    if (existingUser.role === 'CONSULTANT') {
       return await this.prisma.user.update({
         where: { id },
         data: {
@@ -106,25 +112,25 @@ export class UsersService {
         omit: SAFE_USER_OMIT,
         include: {
           consultant: true,
-          company: true,
+          company_members: {
+            include: {
+              company: true,
+            },
+          },
         },
       });
     } else {
       return await this.prisma.user.update({
         where: { id },
-        data: {
-          ...updateUserData,
-          company: {
-            update: {
-              company_name,
-              description,
-            },
-          },
-        },
+        data: updateUserData,
         omit: SAFE_USER_OMIT,
         include: {
           consultant: true,
-          company: true,
+          company_members: {
+            include: {
+              company: true,
+            },
+          },
         },
       });
     }

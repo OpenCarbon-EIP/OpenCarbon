@@ -1,0 +1,16 @@
+meta {
+  name: Reject Member
+  type: http
+  seq: 10
+}
+
+post {
+  url: http://localhost:3000/companies/:id/members/:userId/reject
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+  id: 
+}
