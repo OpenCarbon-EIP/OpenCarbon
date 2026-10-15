@@ -7,6 +7,12 @@ import { z } from 'zod';
 export const RoleSchema = z.enum(['CONSULTANT', 'COMPANY']);
 export type Role = z.infer<typeof RoleSchema>;
 
+/** Libellés affichés des rôles — partagés mobile + web. */
+export const ROLE_LABELS: Record<Role, string> = {
+  CONSULTANT: 'Consultant',
+  COMPANY: 'Entreprise',
+};
+
 export const ConsultantSchema = z
   .object({
     id: z.string(),
