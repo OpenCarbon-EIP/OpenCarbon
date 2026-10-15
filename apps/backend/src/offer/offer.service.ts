@@ -54,6 +54,7 @@ export class OfferService {
         company: {
           include: {
             members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
               include: {
                 user: {
                   omit: SAFE_USER_OMIT,
@@ -83,6 +84,7 @@ export class OfferService {
         company: {
           include: {
             members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
               include: {
                 user: {
                   omit: SAFE_USER_OMIT,
@@ -102,6 +104,7 @@ export class OfferService {
         company: {
           include: {
             members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
               include: {
                 user: {
                   omit: SAFE_USER_OMIT,

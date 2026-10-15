@@ -179,24 +179,57 @@ export class CompanyService {
     userEmail: string,
     dto: AcceptInvitationDto,
   ): Promise<AcceptInvitationResult> {
-    const invitation = await this.prisma.company_invitation.findUnique({
-      where: { token: dto.token },
-    });
-
-    if (!invitation || invitation.expires_at <= new Date()) {
-      throw new BadRequestException('Invitation token is invalid or expired');
-    }
-
-    if (
-      invitation.email &&
-      invitation.email.toLowerCase() !== userEmail.toLowerCase()
-    ) {
-      throw new BadRequestException(
-        'This invitation was sent to a different email address',
-      );
-    }
-
     return await this.prisma.$transaction(async (tx) => {
+      const invitation = await tx.company_invitation.findUnique({
+        where: { token: dto.token },
+      });
+
+      if (!invitation || invitation.expires_at <= new Date()) {
+        throw new BadRequestException('Invitation token is invalid or expired');
+      }
+
+      if (
+        invitation.email &&
+        invitation.email.toLowerCase() !== userEmail.toLowerCase()
+      ) {
+        throw new BadRequestException(
+          'This invitation was sent to a different email address',
+        );
+      }
+
+      const existingMember = await tx.company_member.findUnique({
+        where: {
+          id_company_id_user: {
+            id_company: invitation.id_company,
+            id_user: userId,
+          },
+        },
+      });
+
+      if (existingMember?.status === CompanyMemberStatus.REJECTED) {
+        throw new BadRequestException(
+          'Your membership request was previously rejected',
+        );
+      }
+
+      const deleted = await tx.company_invitation.deleteMany({
+        where: {
+          id: invitation.id,
+          expires_at: { gt: new Date() },
+        },
+      });
+
+      if (deleted.count === 0) {
+        throw new BadRequestException('Invitation token is invalid or expired');
+      }
+
+      const targetRole =
+        existingMember?.role === CompanyRole.ADMIN
+          ? CompanyRole.ADMIN
+          : existingMember?.status === CompanyMemberStatus.ACTIVE
+            ? existingMember.role
+            : invitation.role;
+
       const member = await tx.company_member.upsert({
         where: {
           id_company_id_user: {
@@ -211,13 +244,9 @@ export class CompanyService {
           status: CompanyMemberStatus.ACTIVE,
         },
         update: {
-          role: invitation.role,
+          role: targetRole,
           status: CompanyMemberStatus.ACTIVE,
         },
-      });
-
-      await tx.company_invitation.delete({
-        where: { id: invitation.id },
       });
 
       const company = await tx.company.findUnique({
@@ -354,6 +383,12 @@ export class CompanyService {
 
     if (!member) {
       throw new NotFoundException('Membership request not found');
+    }
+
+    if (member.status !== CompanyMemberStatus.PENDING_APPROVAL) {
+      throw new BadRequestException(
+        'Only membership requests pending approval can be updated',
+      );
     }
 
     return await this.prisma.company_member.update({
