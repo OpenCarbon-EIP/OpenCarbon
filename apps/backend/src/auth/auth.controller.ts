@@ -44,14 +44,14 @@ export class AuthController {
     });
   }
 
-  @Post('register/email')
+  @Post('signup')
   @Throttle({
     default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL },
   })
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new user (consultant or company)' })
-  @SwaggerResponse({ status: 201, description: 'User registered successfully' })
-  async register(
+  @ApiOperation({ summary: 'Signup a new user' })
+  @SwaggerResponse({ status: 201, description: 'User signed up successfully' })
+  async signup(
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<ApiResponse<AuthResponse>> {

@@ -1,5 +1,5 @@
 import type {
-  company,
+  company_member,
   consultant,
   Role,
   user,
@@ -7,7 +7,7 @@ import type {
 
 export type SafeUser = Omit<user, 'password' | 'createdAt' | 'updatedAt'> & {
   consultant?: consultant | null;
-  company?: company | null;
+  company_members?: company_member[];
 };
 
 export type AuthenticatedUser = {

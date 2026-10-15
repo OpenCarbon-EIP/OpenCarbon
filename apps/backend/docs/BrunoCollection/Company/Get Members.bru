@@ -1,0 +1,15 @@
+meta {
+  name: Get Members
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:3000/companies/:id/members
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
