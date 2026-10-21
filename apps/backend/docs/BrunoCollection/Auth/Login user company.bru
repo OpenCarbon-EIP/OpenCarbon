@@ -1,23 +1,25 @@
 meta {
   name: Login user company
   type: http
-  seq: 6
+  seq: 4
 }
 
 post {
   url: http://localhost:3000/auth/login/email
   body: json
-  auth: bearer
-}
-
-auth:bearer {
-  token: 
+  auth: none
 }
 
 body:json {
   {
     "email": "company.dev@opencarbon.com",
     "password": "Test123@"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.access_token) {
+    bru.setVar("token", res.body.data.access_token);
   }
 }
 

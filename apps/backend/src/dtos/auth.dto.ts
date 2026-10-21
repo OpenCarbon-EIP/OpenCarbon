@@ -72,22 +72,20 @@ export class RegisterDto {
   @IsNotEmpty()
   professional_title?: string;
 
-  // Company fields
+  // Company fields (optional during signup, created via POST /companies)
 
   @ApiPropertyOptional({
     example: 'GreenCorp',
-    description: 'Required when role is COMPANY',
+    description: 'Optional company name during signup',
   })
-  @ValidateIf((o: RegisterDto) => o.role === 'COMPANY')
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   company_name?: string;
 
   @ApiPropertyOptional({
     example: 50,
-    description: 'Number of employees (optional, COMPANY only)',
+    description: 'Number of employees (optional)',
   })
-  @ValidateIf((o: RegisterDto) => o.role === 'COMPANY')
   @IsInt()
   @IsOptional()
   company_size?: number;
