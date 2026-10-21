@@ -1,0 +1,15 @@
+# Le backend (apps/backend) est volontairement EXCLU du workspace :
+# il conserve son propre pnpm-lock.yaml et s'installe indépendamment.
+# On ne liste donc que le mobile et les packages partagés.
+packages:
+  - "apps/mobile"
+  - "packages/*"
+
+# Protections contre les paquets compromis (supply chain), exigées par le scan Semgrep :
+# - minimumReleaseAge : n'adopte une nouvelle version qu'après 7 jours (en minutes) — le temps qu'une
+#   version piégée soit repérée et retirée. Exemption ponctuelle via minimumReleaseAgeExclude.
+# - trustPolicy : refuse une version publiée avec moins de garanties (provenance) que les précédentes.
+# - blockExoticSubdeps : les dépendances transitives ne peuvent venir que du registre (pas de git/tarball).
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade
+blockExoticSubdeps: true

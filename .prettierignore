@@ -1,0 +1,3 @@
+# Fichiers générés (ignorés par apps/mobile/.gitignore, que Prettier ne lit pas)
+**/expo-env.d.ts
+**/.expo/
