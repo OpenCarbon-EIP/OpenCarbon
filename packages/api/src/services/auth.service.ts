@@ -1,10 +1,5 @@
 import type { HttpClient } from '../http/http-client';
-import {
-  AuthResponseSchema,
-  type AuthResponse,
-  type LoginInput,
-  type RegisterInput,
-} from '../schemas/auth.schema';
+import { AuthResponseSchema, type AuthResponse, type LoginInput, type RegisterInput } from '../schemas/auth.schema';
 import { SafeUserSchema, type SafeUser } from '../schemas/user.schema';
 
 // Fonctions pures : elles prennent le HttpClient et tapent les endpoints RÉELS du backend

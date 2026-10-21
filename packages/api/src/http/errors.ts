@@ -46,11 +46,7 @@ export const mapHttpError = (status: number, body?: ApiErrorBody): AppError => {
   switch (status) {
     case 400:
     case 422: {
-      const issues = Array.isArray(body?.message)
-        ? body.message
-        : message
-          ? [message]
-          : ['Données invalides'];
+      const issues = Array.isArray(body?.message) ? body.message : message ? [message] : ['Données invalides'];
       return new ValidationFailure(issues, message, status);
     }
     case 401:

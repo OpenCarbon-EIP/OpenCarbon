@@ -19,6 +19,8 @@ export const lightColors = {
   text: '#F8F9FA',
   /** Texte courant posé sur `background`. */
   onBackground: '#182C24',
+  /** Texte secondaire sur `background` (placeholder, onglet inactif) — contraste AA ≥ 4.5:1. */
+  muted: '#66736D',
   ...semanticColors,
 } as const;
 
@@ -31,6 +33,8 @@ export const darkColors = {
   text: '#1C1C1C',
   /** Texte courant posé sur `background`. */
   onBackground: '#D6D0C9',
+  /** Texte secondaire sur `background` (placeholder, onglet inactif) — contraste AA ≥ 4.5:1. */
+  muted: '#9AA59F',
   ...semanticColors,
 } as const;
 
