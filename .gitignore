@@ -1,1 +1,35 @@
+# Dépendances
+node_modules/
+
+# Build & caches
+dist/
+.turbo/
+.expo/
+web-build/
+coverage/
+*.tsbuildinfo
+
+# Expo / React Native
+.expo-shared/
+apps/mobile/.expo/
+# Dossiers natifs générés par `expo prebuild` (workflow managed)
+apps/mobile/ios/
+apps/mobile/android/
+*.orig.*
+.metro-health-check*
+
+# Variables d'environnement — ne JAMAIS pousser de secrets
+.env
+.env*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# IDE & OS
 .idea/
+.DS_Store
+*.pem
