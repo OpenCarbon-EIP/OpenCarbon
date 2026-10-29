@@ -15,6 +15,7 @@ import {
   DocumentWithDetails,
   DocumentWithOwner,
 } from 'src/types/carbon.types';
+import { isUniqueConstraintViolation } from 'src/utils/prisma-errors';
 
 @Injectable()
 export class DocumentService {
@@ -50,9 +51,20 @@ export class DocumentService {
       );
     }
 
-    const created = await this.prisma.document.create({
-      data: { ...body, sha256 },
-    });
+    let created: document;
+    try {
+      created = await this.prisma.document.create({
+        data: { ...body, sha256 },
+      });
+    } catch (error) {
+      // A concurrent upload of the same file can pass the check above; the unique index still blocks it.
+      if (isUniqueConstraintViolation(error)) {
+        throw new ConflictException(
+          'This file has already been uploaded to this worksite',
+        );
+      }
+      throw error;
+    }
 
     this.logger.log(
       `Document ${created.id} ("${created.file_name}", ${created.size_bytes} bytes) added to worksite ${body.id_worksite} by consultant ${consultant.id}`,

@@ -185,6 +185,25 @@ describe('WorksiteService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(prisma.worksite.update).not.toHaveBeenCalled();
     });
+
+    it('should let a null end_date clear the existing one', async () => {
+      prisma.worksite.findUnique.mockResolvedValue(
+        createMockWorksiteWithClient({ end_date: new Date('2026-09-30') }),
+      );
+      prisma.worksite.update.mockResolvedValue(
+        createMockWorksite({ end_date: null }),
+      );
+
+      await service.updateWorksite('user-123', 'worksite-123', {
+        start_date: new Date('2026-10-15'),
+        end_date: null,
+      });
+
+      expect(prisma.worksite.update).toHaveBeenCalledWith({
+        where: { id: 'worksite-123' },
+        data: { start_date: new Date('2026-10-15'), end_date: null },
+      });
+    });
   });
 
   describe('deleteWorksite', () => {

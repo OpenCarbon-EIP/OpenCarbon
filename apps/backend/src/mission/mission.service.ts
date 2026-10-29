@@ -21,6 +21,7 @@ import {
   MissionWithDetails,
 } from 'src/types/mission.types';
 import type { AuthenticatedUser } from 'src/types/user.types';
+import { isUniqueConstraintViolation } from 'src/utils/prisma-errors';
 
 const COMPANY_ONLY_FIELDS: (keyof UpdateMissionDto)[] = [
   'start_date',
@@ -29,8 +30,6 @@ const COMPANY_ONLY_FIELDS: (keyof UpdateMissionDto)[] = [
   'payment_status',
   'status',
 ];
-
-const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 @Injectable()
 export class MissionService {
@@ -102,10 +101,7 @@ export class MissionService {
 
       return created;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === PRISMA_UNIQUE_CONSTRAINT_VIOLATION
-      ) {
+      if (isUniqueConstraintViolation(error)) {
         throw new ConflictException(
           'A mission already exists for this application',
         );

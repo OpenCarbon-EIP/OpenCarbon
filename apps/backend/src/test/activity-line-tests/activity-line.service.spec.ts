@@ -305,6 +305,76 @@ describe('ActivityLineService', () => {
       expect(updateArgs.data.id_emission_factor).toBe('factor-456');
     });
 
+    it('should drop the conversion when the input unit now matches the factor', async () => {
+      prisma.activity_line.findUnique.mockResolvedValue(
+        createMockLineWithOwner({
+          input_quantity: new Prisma.Decimal(85),
+          input_unit: 'M3',
+          conversion_factor: new Prisma.Decimal(2.4),
+          conversion_note: 'béton 2,4 t/m³',
+          calc_unit: 'TONNE',
+          fe_value_kgco2e: new Prisma.Decimal(96),
+        }),
+      );
+
+      await service.updateLine('user-123', 'line-123', {
+        input_quantity: 204,
+        input_unit: 'TONNE',
+      });
+
+      const updateArgs = prisma.activity_line.update.mock.calls[0][0] as {
+        data: {
+          conversion_factor: unknown;
+          conversion_note: unknown;
+          calc_quantity: Prisma.Decimal;
+          result_kgco2e: Prisma.Decimal;
+        };
+      };
+      expect(updateArgs.data.conversion_factor).toBeNull();
+      expect(updateArgs.data.conversion_note).toBeNull();
+      expect(updateArgs.data.calc_quantity.toString()).toBe('204');
+      expect(updateArgs.data.result_kgco2e.toString()).toBe('19584');
+    });
+
+    it('should require a new conversion when the factor unit changes', async () => {
+      prisma.activity_line.findUnique.mockResolvedValue(
+        createMockLineWithOwner({
+          input_unit: 'M3',
+          conversion_factor: new Prisma.Decimal(2.4),
+          calc_unit: 'TONNE',
+        }),
+      );
+      emissionFactorService.getUsableFactor.mockResolvedValue(
+        createMockEmissionFactor({ id: 'factor-kg', per_unit: 'KG' }),
+      );
+
+      await expect(
+        service.updateLine('user-123', 'line-123', {
+          id_emission_factor: 'factor-kg',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.activity_line.update).not.toHaveBeenCalled();
+    });
+
+    it('should keep the conversion when only the quantity changes', async () => {
+      prisma.activity_line.findUnique.mockResolvedValue(
+        createMockLineWithOwner({
+          input_unit: 'M3',
+          conversion_factor: new Prisma.Decimal(2.4),
+          calc_unit: 'TONNE',
+          fe_value_kgco2e: new Prisma.Decimal(96),
+        }),
+      );
+
+      await service.updateLine('user-123', 'line-123', { input_quantity: 10 });
+
+      const updateArgs = prisma.activity_line.update.mock.calls[0][0] as {
+        data: { conversion_note: unknown; calc_quantity: Prisma.Decimal };
+      };
+      expect(updateArgs.data.calc_quantity.toString()).toBe('24');
+      expect(updateArgs.data.conversion_note).toBeUndefined();
+    });
+
     it('should set validated_at when the line gets validated', async () => {
       prisma.activity_line.findUnique.mockResolvedValue(
         createMockLineWithOwner({ is_validated: false }),

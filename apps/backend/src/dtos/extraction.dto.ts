@@ -15,6 +15,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { toDate } from 'src/utils/dto-helpers';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   DataOrigin,
@@ -66,7 +67,7 @@ export class CreateExtractionDto {
 
   @ApiPropertyOptional({ example: '2026-03-31T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsOptional()
   document_date?: Date;
 

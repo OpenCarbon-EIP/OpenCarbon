@@ -222,6 +222,7 @@ export class ActivityLineService {
     );
 
     let recalculatedFields: Partial<PreparedActivityLine> = {};
+    let conversionDropped = false;
     if (recalculates) {
       // Keep the factor values copied at creation unless a new factor is chosen.
       const snapshot = body.id_emission_factor
@@ -238,12 +239,24 @@ export class ActivityLineService {
         body.data_uncertainty_pct ??
         (body.data_origin ? undefined : existing.data_uncertainty_pct);
 
+      // A conversion is only valid for the unit pair it was entered for: drop it when that pair changes,
+      // so that computeFields requires a new one instead of silently reusing a wrong factor.
+      const inputUnit = body.input_unit ?? existing.input_unit;
+      const unitPairChanged =
+        inputUnit !== existing.input_unit ||
+        snapshot.perUnit !== existing.calc_unit;
+      conversionDropped =
+        body.conversion_factor === undefined &&
+        unitPairChanged &&
+        existing.conversion_factor !== null;
+
       recalculatedFields = this.computeFields(
         {
           inputQuantity: body.input_quantity ?? existing.input_quantity,
-          inputUnit: body.input_unit ?? existing.input_unit,
+          inputUnit,
           conversionFactor:
-            body.conversion_factor ?? existing.conversion_factor,
+            body.conversion_factor ??
+            (unitPairChanged ? null : existing.conversion_factor),
           dataOrigin,
           dataUncertaintyPct,
         },
@@ -265,7 +278,8 @@ export class ActivityLineService {
         where: { id },
         data: {
           label: body.label,
-          conversion_note: body.conversion_note,
+          conversion_note:
+            body.conversion_note ?? (conversionDropped ? null : undefined),
           comment: body.comment,
           id_category: body.id_category,
           ...recalculatedFields,

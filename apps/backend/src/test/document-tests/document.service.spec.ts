@@ -9,6 +9,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ConsultantService } from 'src/consultant/consultant.service';
 import { WorksiteService } from 'src/worksite/worksite.service';
 import { CreateDocumentDto } from 'src/dtos/document.dto';
+import { Prisma } from 'src/generated/prisma/client';
 import {
   createMockConsultant,
   createMockDocument,
@@ -75,6 +76,20 @@ describe('DocumentService', () => {
         service.createDocument('user-123', createDto),
       ).rejects.toThrow(ConflictException);
       expect(prisma.document.create).not.toHaveBeenCalled();
+    });
+
+    it('should map a concurrent duplicate upload to a ConflictException', async () => {
+      prisma.document.findUnique.mockResolvedValue(null);
+      prisma.document.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '7.9.0',
+        }),
+      );
+
+      await expect(
+        service.createDocument('user-123', createDto),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should propagate the worksite ownership error', async () => {

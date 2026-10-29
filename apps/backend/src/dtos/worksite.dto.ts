@@ -10,6 +10,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
+import { IsOptionalNonNullable, toDate } from 'src/utils/dto-helpers';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrganizationalBoundary, WorkType } from 'src/generated/prisma/client';
 
@@ -56,13 +57,13 @@ export class CreateWorksiteDto {
 
   @ApiProperty({ example: '2026-03-01T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsNotEmpty()
   start_date: Date;
 
   @ApiPropertyOptional({ example: '2026-09-30T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsOptional()
   end_date?: Date;
 
@@ -132,15 +133,20 @@ export class UpdateWorksiteDto {
 
   @ApiPropertyOptional({ example: '2026-03-01T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
-  @IsOptional()
+  @Transform(toDate)
+  @IsOptionalNonNullable()
   start_date?: Date;
 
-  @ApiPropertyOptional({ example: '2026-09-30T00:00:00.000Z' })
+  @ApiPropertyOptional({
+    example: '2026-09-30T00:00:00.000Z',
+    description: 'null clears it',
+    type: Date,
+    nullable: true,
+  })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsOptional()
-  end_date?: Date;
+  end_date?: Date | null;
 
   @ApiPropertyOptional({ example: 7000 })
   @IsNumber()

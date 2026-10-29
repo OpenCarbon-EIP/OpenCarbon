@@ -155,13 +155,21 @@ export class ExtractionService {
     }
 
     if (body.status === ExtractionStatus.REJECTED) {
-      const rejected = await this.prisma.extraction.update({
-        where: { id },
+      const claimed = await this.prisma.extraction.updateMany({
+        where: { id, status: ExtractionStatus.PROPOSED },
         data: {
           status: ExtractionStatus.REJECTED,
           reviewed_at: new Date(),
           ...(body.comment && { correction: { comment: body.comment } }),
         },
+      });
+
+      if (claimed.count === 0) {
+        throw new ConflictException('Extraction has already been reviewed');
+      }
+
+      const rejected = await this.prisma.extraction.findUniqueOrThrow({
+        where: { id },
         include: EXTRACTION_DETAIL_INCLUDE,
       });
 

@@ -132,7 +132,7 @@ export class WorksiteService {
 
     this.assertDateRange(
       body.start_date ?? existing.start_date,
-      body.end_date ?? existing.end_date,
+      body.end_date !== undefined ? body.end_date : existing.end_date,
     );
 
     const updated = await this.prisma.worksite.update({

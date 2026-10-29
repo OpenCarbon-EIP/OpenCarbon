@@ -186,25 +186,31 @@ describe('ExtractionService', () => {
     });
 
     it('should reject an extraction with the comment', async () => {
-      prisma.extraction.update.mockResolvedValue(
-        createMockExtraction({ status: 'REJECTED' }),
-      );
-
       await service.reviewExtraction('user-123', 'extraction-123', {
         status: 'REJECTED',
         comment: 'Doublon',
       });
 
-      expect(prisma.extraction.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            status: 'REJECTED',
-            reviewed_at: expect.any(Date),
-            correction: { comment: 'Doublon' },
-          },
-        }),
-      );
+      expect(prisma.extraction.updateMany).toHaveBeenCalledWith({
+        where: { id: 'extraction-123', status: 'PROPOSED' },
+        data: {
+          status: 'REJECTED',
+          reviewed_at: expect.any(Date),
+          correction: { comment: 'Doublon' },
+        },
+      });
       expect(prisma.activity_line.create).not.toHaveBeenCalled();
+    });
+
+    it('should not reject an extraction accepted concurrently', async () => {
+      prisma.extraction.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.reviewExtraction('user-123', 'extraction-123', {
+          status: 'REJECTED',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(prisma.extraction.findUniqueOrThrow).not.toHaveBeenCalled();
     });
 
     it('should accept an extraction and create the AI activity line', async () => {

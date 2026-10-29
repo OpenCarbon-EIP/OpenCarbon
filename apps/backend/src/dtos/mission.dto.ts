@@ -9,6 +9,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { IsOptionalNonNullable, toDate } from 'src/utils/dto-helpers';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MissionStatus, PaymentStatus } from 'src/generated/prisma/client';
 
@@ -24,13 +25,13 @@ export class CreateMissionDto {
 
   @ApiProperty({ example: '2026-11-01T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsNotEmpty()
   start_date: Date;
 
   @ApiProperty({ example: '2027-02-28T00:00:00.000Z' })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsNotEmpty()
   estimated_end_date: Date;
 }
@@ -41,8 +42,8 @@ export class UpdateMissionDto {
     description: 'Company only',
   })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
-  @IsOptional()
+  @Transform(toDate)
+  @IsOptionalNonNullable()
   start_date?: Date;
 
   @ApiPropertyOptional({
@@ -50,19 +51,21 @@ export class UpdateMissionDto {
     description: 'Company only',
   })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
-  @IsOptional()
+  @Transform(toDate)
+  @IsOptionalNonNullable()
   estimated_end_date?: Date;
 
   @ApiPropertyOptional({
     example: '2027-02-15T00:00:00.000Z',
     description:
-      'Company only. Set automatically when status becomes COMPLETED',
+      'Company only. Set automatically when status becomes COMPLETED; null clears it',
+    type: Date,
+    nullable: true,
   })
   @IsDate()
-  @Transform(({ value }) => new Date(value as string))
+  @Transform(toDate)
   @IsOptional()
-  end_date?: Date;
+  end_date?: Date | null;
 
   @ApiPropertyOptional({
     enum: PaymentStatus,
