@@ -1,10 +1,18 @@
-import type { offer, company } from 'src/generated/prisma/client';
+import type {
+  offer,
+  company,
+  company_member,
+} from 'src/generated/prisma/client';
 import { SafeUser } from './user.types';
 
-export type CompanyWithUser = company & {
+export type CompanyMemberWithUser = company_member & {
   user: SafeUser;
 };
 
+export type CompanyWithMembers = company & {
+  members: CompanyMemberWithUser[];
+};
+
 export type OfferWithRelations = offer & {
-  company: CompanyWithUser;
+  company: CompanyWithMembers;
 };

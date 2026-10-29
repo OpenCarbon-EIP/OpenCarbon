@@ -9,6 +9,7 @@ import { CreateApplicationDto } from 'src/dtos/application.dto';
 import type { application } from 'src/generated/prisma/client';
 import { UsersService } from 'src/users/users.service';
 import { ConsultantService } from 'src/consultant/consultant.service';
+import { CompanyMemberStatus } from 'src/generated/prisma/client';
 
 @Injectable()
 export class ApplicationService {
@@ -38,16 +39,16 @@ export class ApplicationService {
         where: { id_consultant: consultant.id },
       });
     } else if (user.role === 'COMPANY') {
-      const company = await this.prisma.company.findUnique({
-        where: { id_user: userId },
+      const membership = await this.prisma.company_member.findFirst({
+        where: { id_user: userId, status: CompanyMemberStatus.ACTIVE },
       });
-      if (!company) {
-        throw new NotFoundException('Company profile not found');
+      if (!membership) {
+        throw new NotFoundException('Active company membership not found');
       }
       return await this.prisma.application.findMany({
         where: {
           offer: {
-            id_company: company.id,
+            id_company: membership.id_company,
           },
         },
       });
@@ -159,14 +160,14 @@ export class ApplicationService {
         await this.consultantService.getConsultantByUserId(userId);
       return consultant ? application.id_consultant === consultant.id : false;
     } else if (user.role === 'COMPANY') {
-      const company = await this.prisma.company.findUnique({
-        where: { id_user: userId },
+      const membership = await this.prisma.company_member.findFirst({
+        where: { id_user: userId, status: CompanyMemberStatus.ACTIVE },
       });
-      if (!company) return false;
+      if (!membership) return false;
       const offer = await this.prisma.offer.findUnique({
         where: { id: application.id_offer },
       });
-      return offer ? offer.id_company === company.id : false;
+      return offer ? offer.id_company === membership.id_company : false;
     }
 
     return false;

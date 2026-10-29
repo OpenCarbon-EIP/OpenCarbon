@@ -1,11 +1,11 @@
 meta {
-  name: Register user
+  name: Signup user
   type: http
   seq: 2
 }
 
 post {
-  url: http://localhost:3000/auth/register/email
+  url: http://localhost:3000/auth/signup
   body: json
   auth: none
 }
@@ -18,13 +18,12 @@ body:json {
   {
     "email": "test.dev@opencarbon.com",
     "password": "Test123@",
-    "role": "CONSULTANT",
-    "last_name": "Nolann",
-    "first_name": "Dubos",
-    "professional_title": "expert"
+    "role": "CONSULTANT"
   }
 }
 
-docs {
-  This request retrieves a list of users from the JSONPlaceholder API.
+script:post-response {
+  if (res.body && res.body.data && res.body.data.access_token) {
+    bru.setVar("token", res.body.data.access_token);
+  }
 }
