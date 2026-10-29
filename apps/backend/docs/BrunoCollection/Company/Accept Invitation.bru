@@ -1,0 +1,17 @@
+meta {
+  name: Accept Invitation
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/companies/invitations/accept
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "token": "YOUR_INVITATION_TOKEN_HERE"
+  }
+}

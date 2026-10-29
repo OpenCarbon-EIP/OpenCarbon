@@ -13,7 +13,11 @@ import { JwtService } from '@nestjs/jwt';
 import type { AuthenticatedUser, SafeUser } from 'src/types/user.types';
 import { AuthResponse } from 'src/types/auth.types';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Role } from 'src/generated/prisma/client';
+import {
+  Role,
+  CompanyMemberStatus,
+  CompanyRole,
+} from 'src/generated/prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import * as crypto from 'crypto';
@@ -95,16 +99,10 @@ export class AuthService {
           'last_name, first_name and professional_title are required for consultants',
         );
       }
-    } else if (role === Role.COMPANY) {
-      const { company_name } = registerDto;
-
-      if (!company_name) {
-        throw new BadRequestException('company_name is required for companies');
-      }
     }
 
-    const existingUsers = await this.usersService.getUserByEmail(emailTrim);
-    if (existingUsers) {
+    const existingUser = await this.usersService.getUserByEmail(emailTrim);
+    if (existingUser) {
       this.logger.warn(
         `Registration failed: Email ${emailTrim} already in use`,
       );
@@ -137,17 +135,30 @@ export class AuthService {
               id_user: createdUser.id,
             },
           });
-        } else if (role === Role.COMPANY) {
-          const { company_name, company_size, description } = registerDto;
-          await tx.company.create({
-            data: {
-              company_name: company_name!,
-              company_size,
-              description,
-              id_user: createdUser.id,
-            },
-          });
         }
+
+        // Domain auto-attachment check
+        const domainName = emailTrim.split('@')[1];
+        if (domainName) {
+          const matchedDomain = await tx.company_domain.findUnique({
+            where: { domain: domainName },
+          });
+
+          if (matchedDomain) {
+            this.logger.log(
+              `Email domain ${domainName} matched company ${matchedDomain.id_company}. Creating pending member for user ${createdUser.id}.`,
+            );
+            await tx.company_member.create({
+              data: {
+                id_company: matchedDomain.id_company,
+                id_user: createdUser.id,
+                role: CompanyRole.MEMBER,
+                status: CompanyMemberStatus.PENDING_APPROVAL,
+              },
+            });
+          }
+        }
+
         return createdUser;
       });
     } catch (error) {

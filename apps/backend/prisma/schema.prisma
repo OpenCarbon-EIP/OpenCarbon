@@ -19,6 +19,17 @@ enum Role {
   COMPANY
 }
 
+enum CompanyRole {
+  ADMIN
+  MEMBER
+}
+
+enum CompanyMemberStatus {
+  ACTIVE
+  PENDING_APPROVAL
+  REJECTED
+}
+
 enum OfferStatus {
   OPEN
   CLOSED
@@ -45,7 +56,8 @@ model user {
   role Role @default(CONSULTANT)
 
   consultant consultant?
-  company company?
+  company_members company_member[]
+  invitations_created company_invitation[]
   sessions sessions[]
 }
 
@@ -99,13 +111,53 @@ model company {
   company_size Int?
   description String?
   logo_url String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  id_user String @unique
-  user user @relation(fields: [id_user], references: [id])
-
+  members company_member[]
+  domains company_domain[]
+  invitations company_invitation[]
   offers offer[]
   legal legal?
   missions mission[]
+}
+
+model company_member {
+  id String @id @default(uuid())
+  id_company String
+  id_user String
+  role CompanyRole @default(MEMBER)
+  status CompanyMemberStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company company @relation(fields: [id_company], references: [id], onDelete: Cascade)
+  user user @relation(fields: [id_user], references: [id], onDelete: Cascade)
+
+  @@unique([id_company, id_user])
+}
+
+model company_domain {
+  id String @id @default(uuid())
+  id_company String
+  domain String @unique
+  createdAt DateTime @default(now())
+
+  company company @relation(fields: [id_company], references: [id], onDelete: Cascade)
+}
+
+model company_invitation {
+  id String @id @default(uuid())
+  id_company String
+  email String?
+  role CompanyRole @default(MEMBER)
+  token String @unique
+  expires_at DateTime
+  created_by_user_id String
+  created_at DateTime @default(now())
+
+  company company @relation(fields: [id_company], references: [id], onDelete: Cascade)
+  created_by user @relation(fields: [created_by_user_id], references: [id], onDelete: Cascade)
 }
 
 model offer {

@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UsersService } from '../../users/users.service';
 import {
   createMockUserCompany,
-  createMockCompany,
   createMockOfferList,
   createMockOffer,
   createMockOfferWithRelations,
@@ -20,6 +19,16 @@ describe('OfferService', () => {
   let prismaService: PrismaService;
   let usersService: UsersService;
 
+  const mockMembership = {
+    id: 'member-123',
+    id_company: 'company-uuid',
+    id_user: 'user-123',
+    role: 'ADMIN' as const,
+    status: 'ACTIVE' as const,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,8 +43,8 @@ describe('OfferService', () => {
               delete: jest.fn(),
               update: jest.fn(),
             },
-            company: {
-              findUnique: jest.fn(),
+            company_member: {
+              findFirst: jest.fn(),
             },
           },
         },
@@ -56,19 +65,14 @@ describe('OfferService', () => {
   describe('createOffer', () => {
     it('should create a new offer with authenticated user', async () => {
       const createDto = createMockOffer();
-
       const userId = 'user-123';
-
       const mockUser = createMockUserCompany();
-
-      const mockCompany = createMockCompany();
-
       const mockOffer = createMockOffer();
 
       jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
       jest
-        .spyOn(prismaService.company, 'findUnique')
-        .mockResolvedValue(mockCompany);
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValue(mockMembership);
       jest.spyOn(prismaService.offer, 'create').mockResolvedValue(mockOffer);
 
       const result = await service.createOffer(userId, createDto);
@@ -86,13 +90,14 @@ describe('OfferService', () => {
       );
     });
 
-    it('should throw NotFoundException if company not found', async () => {
+    it('should throw NotFoundException if company membership not found', async () => {
       const createDto = createMockOffer();
-
       const mockUser = createMockUserCompany();
 
       jest.spyOn(usersService, 'getUserById').mockResolvedValue(mockUser);
-      jest.spyOn(prismaService.company, 'findUnique').mockResolvedValue(null);
+      jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValue(null);
 
       await expect(service.createOffer('user-123', createDto)).rejects.toThrow(
         NotFoundException,
@@ -115,13 +120,11 @@ describe('OfferService', () => {
   describe('listMyOffers', () => {
     it('should return offers for a company', async () => {
       const userId = 'user-123';
-      const mockCompany = createMockCompany();
-
       const mockOffers = createMockOfferList(2);
 
       jest
-        .spyOn(prismaService.company, 'findUnique')
-        .mockResolvedValue(mockCompany);
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValue(mockMembership);
       jest.spyOn(prismaService.offer, 'findMany').mockResolvedValue(mockOffers);
 
       const result = await service.listMyOffers(userId);
@@ -129,8 +132,10 @@ describe('OfferService', () => {
       expect(result).toEqual(mockOffers);
     });
 
-    it('should throw NotFoundException if company not found', async () => {
-      jest.spyOn(prismaService.company, 'findUnique').mockResolvedValue(null);
+    it('should throw NotFoundException if company membership not found', async () => {
+      jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValue(null);
 
       await expect(service.listMyOffers('user-123')).rejects.toThrow(
         NotFoundException,
@@ -139,7 +144,7 @@ describe('OfferService', () => {
   });
 
   describe('getOfferById', () => {
-    it('should return an offer with company and user when it exists', async () => {
+    it('should return an offer with company and members when it exists', async () => {
       const mockOfferWithRelations = createMockOfferWithRelations();
 
       jest
@@ -150,7 +155,7 @@ describe('OfferService', () => {
 
       expect(result).toEqual(mockOfferWithRelations);
       expect(result.company).toBeDefined();
-      expect(result.company.user).toBeDefined();
+      expect(result.company.members).toBeDefined();
     });
 
     it('should throw NotFoundException if offer not found', async () => {
@@ -190,6 +195,9 @@ describe('OfferService', () => {
         .spyOn(prismaService.offer, 'findUnique')
         .mockResolvedValueOnce(mockOfferWithRelations);
       jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValueOnce(mockMembership);
+      jest
         .spyOn(prismaService.offer, 'update')
         .mockResolvedValueOnce(updatedOffer);
 
@@ -198,7 +206,7 @@ describe('OfferService', () => {
       expect(result).toEqual(updatedOffer);
     });
 
-    it('should throw ForbiddenException if user does not own the offer', async () => {
+    it('should throw ForbiddenException if user does not belong to the offer company', async () => {
       const userId = 'other-user-123';
       const offerId = 'offer-123';
       const updateDto = createMockOffer();
@@ -208,6 +216,9 @@ describe('OfferService', () => {
       jest
         .spyOn(prismaService.offer, 'findUnique')
         .mockResolvedValueOnce(mockOfferWithRelations);
+      jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValueOnce(null);
 
       await expect(
         service.updateOffer(userId, offerId, updateDto),
@@ -220,8 +231,6 @@ describe('OfferService', () => {
       const userId = 'user-123';
       const offerId = 'offer-123';
 
-      const mockCompany = createMockCompany();
-
       const mockOfferWithRelations = createMockOfferWithRelations();
 
       const mockOffers = createMockOfferList(1);
@@ -230,11 +239,14 @@ describe('OfferService', () => {
         .spyOn(prismaService.offer, 'findUnique')
         .mockResolvedValueOnce(mockOfferWithRelations);
       jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValueOnce(mockMembership);
+      jest
         .spyOn(prismaService.offer, 'delete')
         .mockResolvedValueOnce(mockOfferWithRelations);
       jest
-        .spyOn(prismaService.company, 'findUnique')
-        .mockResolvedValueOnce(mockCompany);
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValueOnce(mockMembership);
       jest
         .spyOn(prismaService.offer, 'findMany')
         .mockResolvedValueOnce(mockOffers);
@@ -255,7 +267,7 @@ describe('OfferService', () => {
       );
     });
 
-    it('should throw UnauthorizedException if user does not own the offer', async () => {
+    it('should throw UnauthorizedException if user does not belong to company', async () => {
       const userId = 'other-user-123';
       const offerId = 'offer-123';
 
@@ -264,6 +276,9 @@ describe('OfferService', () => {
       jest
         .spyOn(prismaService.offer, 'findUnique')
         .mockResolvedValueOnce(mockOfferWithRelations);
+      jest
+        .spyOn(prismaService.company_member, 'findFirst')
+        .mockResolvedValueOnce(null);
 
       await expect(service.deleteOffer(userId, offerId)).rejects.toThrow(
         UnauthorizedException,

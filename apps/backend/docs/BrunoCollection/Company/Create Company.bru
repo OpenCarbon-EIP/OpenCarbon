@@ -1,0 +1,20 @@
+meta {
+  name: Create Company
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/companies
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "company_name": "OpenCarbon",
+    "company_size": 50,
+    "description": "Carbon footprint auditing and consulting",
+    "logo_url": "https://example.com/logo.png"
+  }
+}

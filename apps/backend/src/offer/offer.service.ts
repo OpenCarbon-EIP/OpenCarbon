@@ -8,6 +8,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SAFE_USER_OMIT, UsersService } from 'src/users/users.service';
 import { OfferWithRelations } from 'src/types/offer.types';
+import { CompanyMemberStatus } from 'src/generated/prisma/client';
 
 @Injectable()
 export class OfferService {
@@ -23,17 +24,19 @@ export class OfferService {
       throw new NotFoundException('User not found');
     }
 
-    const company = await this.prismaService.company.findUnique({
-      where: { id_user: userId },
+    const membership = await this.prismaService.company_member.findFirst({
+      where: { id_user: userId, status: CompanyMemberStatus.ACTIVE },
     });
 
-    if (!company) {
-      throw new NotFoundException('Company not found for the user');
+    if (!membership) {
+      throw new NotFoundException(
+        'Active company membership not found for user',
+      );
     }
 
     const offer = await this.prismaService.offer.create({
       data: {
-        id_company: company.id,
+        id_company: membership.id_company,
         title: body.title,
         description: body.description,
         budget: body.budget,
@@ -50,8 +53,13 @@ export class OfferService {
       include: {
         company: {
           include: {
-            user: {
-              omit: SAFE_USER_OMIT,
+            members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
+              include: {
+                user: {
+                  omit: SAFE_USER_OMIT,
+                },
+              },
             },
           },
         },
@@ -60,21 +68,28 @@ export class OfferService {
   }
 
   async listMyOffers(userId: string) {
-    const company = await this.prismaService.company.findUnique({
-      where: { id_user: userId },
+    const membership = await this.prismaService.company_member.findFirst({
+      where: { id_user: userId, status: CompanyMemberStatus.ACTIVE },
     });
 
-    if (!company) {
-      throw new NotFoundException('Company not found for the user');
+    if (!membership) {
+      throw new NotFoundException(
+        'Active company membership not found for user',
+      );
     }
 
     return this.prismaService.offer.findMany({
-      where: { id_company: company.id },
+      where: { id_company: membership.id_company },
       include: {
         company: {
           include: {
-            user: {
-              omit: SAFE_USER_OMIT,
+            members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
+              include: {
+                user: {
+                  omit: SAFE_USER_OMIT,
+                },
+              },
             },
           },
         },
@@ -88,8 +103,13 @@ export class OfferService {
       include: {
         company: {
           include: {
-            user: {
-              omit: SAFE_USER_OMIT,
+            members: {
+              where: { status: CompanyMemberStatus.ACTIVE },
+              include: {
+                user: {
+                  omit: SAFE_USER_OMIT,
+                },
+              },
             },
           },
         },
@@ -108,7 +128,15 @@ export class OfferService {
 
     const offer = await this.getOfferById(id);
 
-    if (offer.company.id_user !== userId) {
+    const isMember = await this.prismaService.company_member.findFirst({
+      where: {
+        id_company: offer.id_company,
+        id_user: userId,
+        status: CompanyMemberStatus.ACTIVE,
+      },
+    });
+
+    if (!isMember) {
       throw new ForbiddenException('User not authorized to update this offer');
     }
 
@@ -128,7 +156,15 @@ export class OfferService {
   async deleteOffer(userId: string, id: string) {
     const offer = await this.getOfferById(id);
 
-    if (offer.company.id_user !== userId) {
+    const isMember = await this.prismaService.company_member.findFirst({
+      where: {
+        id_company: offer.id_company,
+        id_user: userId,
+        status: CompanyMemberStatus.ACTIVE,
+      },
+    });
+
+    if (!isMember) {
       throw new UnauthorizedException(
         'User not authorized to delete this offer',
       );
