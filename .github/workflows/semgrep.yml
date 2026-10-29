@@ -6,11 +6,13 @@ on:
     paths:
       - "apps/backend/**"
       - ".github/workflows/**"
+      - ".semgrepignore"
   pull_request:
     branches: ["main", "dev"]
     paths:
       - "apps/backend/**"
       - ".github/workflows/**"
+      - ".semgrepignore"
 
 permissions:
   contents: read
@@ -35,5 +37,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install semgrep
 
+      # Un seul job et une mémoire bornée : le moteur se faisait tuer (« semgrep-core exited with -11 »).
       - name: Run Semgrep Scan
-        run: semgrep scan --config auto --error
+        run: semgrep scan --config auto --error --jobs 1 --max-memory 4000
