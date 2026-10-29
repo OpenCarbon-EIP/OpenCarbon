@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { consultant } from 'src/generated/prisma/client';
 
@@ -30,5 +30,15 @@ export class ConsultantService {
     return await this.prisma.consultant.findUnique({
       where: { id_user: userId },
     });
+  }
+
+  async getConsultantByUserIdOrThrow(userId: string): Promise<consultant> {
+    const consultant = await this.getConsultantByUserId(userId);
+
+    if (!consultant) {
+      throw new NotFoundException('Consultant profile not found');
+    }
+
+    return consultant;
   }
 }

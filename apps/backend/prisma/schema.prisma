@@ -47,6 +47,13 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  PENDING  // en attente de paiement
+  PAID     // payée
+  FAILED   // paiement échoué
+  REFUNDED // remboursée
+}
+
 model user {
   id String @id @default(uuid())
   email String @unique
@@ -90,6 +97,10 @@ model consultant {
   applications application[]
   legal legal?
   missions mission[]
+
+  // --- Bilans carbone ---
+  clients client[]                     // les entreprises que le professionnel accompagne
+  custom_emission_factors emission_factor[] // FE personnalisés (FDES, fournisseur)
 }
 
 model certification {
@@ -120,6 +131,9 @@ model company {
   offers offer[]
   legal legal?
   missions mission[]
+
+  // --- Bilans carbone ---
+  client_records client[]   // fiches client qui pointent vers ce compte entreprise
 }
 
 model company_member {
@@ -185,6 +199,8 @@ model application {
 
   id_consultant String
   consultant consultant @relation(fields: [id_consultant], references: [id])
+
+  mission mission? // mission créée quand cette candidature est acceptée
 }
 
 model legal {
@@ -204,15 +220,421 @@ model legal {
 model mission {
   id String @id @default(uuid())
   start_date DateTime
-  end_date DateTime
+  end_date DateTime? // date de fin réelle : vide tant que la mission est en cours
   estimated_end_date DateTime
   progress Int @default(0)
-  payment_status String
+  payment_status PaymentStatus @default(PENDING)
   status MissionStatus @default(ONGOING)
+
+  // Candidature acceptée qui a donné cette mission (et, à travers elle, l'offre d'origine)
+  id_application String? @unique
+  application application? @relation(fields: [id_application], references: [id])
 
   id_company String
   company company @relation(fields: [id_company], references: [id])
 
   id_consultant String
   consultant consultant @relation(fields: [id_consultant], references: [id])
+
+  // --- Bilans carbone ---
+  worksites worksite[]   // chantiers évalués dans le cadre de cette mission
+}
+
+// =====================================================================
+// BILANS CARBONE
+// =====================================================================
+
+// Unités de mesure. Une seule liste, utilisée à la fois pour les quantités
+// des lignes et pour le dénominateur des facteurs d'émission (kgCO2e / unité) :
+// c'est ce qui permet de vérifier que la ligne et le FE sont compatibles.
+enum Unit {
+  LITRE
+  KG
+  TONNE
+  M3
+  M2
+  KWH
+  TONNE_KM
+  KM
+  UNIT
+}
+
+enum WorkType {
+  ROADWORKS        // voirie, chaussées
+  NETWORKS         // réseaux (eau, assainissement, électricité)
+  EARTHWORKS       // terrassement
+  CIVIL_ENGINEERING // ouvrages d'art, génie civil
+  OTHER
+}
+
+enum OrganizationalBoundary {
+  OPERATIONAL_CONTROL // par défaut dans la méthode
+  FINANCIAL_CONTROL
+  EQUITY_SHARE
+}
+
+enum AssessmentType {
+  FORECAST // prévisionnel (à partir des métrés, DPGF) — utile pour répondre à l'appel d'offres
+  ACTUAL   // réel (à partir des factures, bons de livraison) — en fin de chantier
+}
+
+enum AssessmentStatus {
+  DRAFT      // en cours de collecte / revue
+  VALIDATED  // validé par le professionnel
+  SENT       // rapport envoyé au client
+}
+
+enum MaturityLevel {
+  INITIAL
+  STANDARD
+  ADVANCED
+}
+
+enum DocumentType {
+  FUEL_INVOICE        // facture ou relevé de carburant
+  DELIVERY_NOTE       // bon de livraison matériaux
+  MATERIAL_INVOICE    // facture de matériaux
+  WASTE_SLIP          // bon de pesée, bordereau de déchets
+  ELECTRICITY_INVOICE // facture d'électricité, relevé de compteur
+  BILL_OF_QUANTITIES  // métré, DPGF, devis
+  MAINTENANCE_REPORT  // rapport de maintenance (fluides frigorigènes)
+  OTHER
+  UNKNOWN             // pas encore classé par l'IA
+}
+
+enum ExtractionJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ExtractionStatus {
+  PROPOSED  // proposée par l'IA, pas encore revue
+  ACCEPTED  // acceptée telle quelle
+  CORRECTED // acceptée après correction
+  REJECTED  // rejetée (doublon, hors chantier, erreur de lecture…)
+}
+
+enum DataOrigin {
+  MEASURED   // facture, compteur, pesée            → incertitude ~5 %
+  CALCULATED // métré, bon de livraison              → ~10-15 %
+  ESTIMATED  // ratio, dire d'expert                 → ~30-50 %
+}
+
+enum EntryMode {
+  AI_EXTRACTED
+  MANUAL
+}
+
+enum EmissionFactorSource {
+  BASE_EMPREINTE // base publique de l'ADEME
+  FDES           // fiche produit (base INIES)
+  SUPPLIER       // donnée fournisseur
+  CUSTOM         // autre, source obligatoire
+}
+
+enum EmissionFactorStatus {
+  VALID_GENERIC
+  VALID_SPECIFIC
+  ARCHIVED
+}
+
+enum ActionStatus {
+  PROPOSED
+  RETAINED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------
+// Client : l'entreprise accompagnée par le professionnel.
+// Elle n'a pas forcément de compte sur OpenCarbon (le pro travaille à
+// partir des documents qu'elle lui envoie), d'où le lien optionnel vers company.
+// ---------------------------------------------------------------------
+model client {
+  id String @id @default(uuid())
+  company_name String
+  siren String?
+  employee_count Int?
+  sector String?
+  contact_name String?
+  contact_email String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  id_consultant String
+  consultant consultant @relation(fields: [id_consultant], references: [id])
+
+  id_company String?
+  company company? @relation(fields: [id_company], references: [id])
+
+  worksites worksite[]
+
+  @@index([id_consultant])
+}
+
+// ---------------------------------------------------------------------
+// Chantier : le périmètre physique et temporel évalué.
+// ---------------------------------------------------------------------
+model worksite {
+  id String @id @default(uuid())
+  name String
+  project_owner String?        // maître d'ouvrage
+  contract_reference String?   // référence du marché public
+  address String?
+  work_type WorkType
+  start_date DateTime
+  end_date DateTime?
+
+  // Unité fonctionnelle pour les ratios (ex. 1 km de voirie, 7000 m²)
+  functional_unit_value Decimal? @db.Decimal(14, 3)
+  functional_unit_label String?  // "km de voirie", "m² de chaussée"…
+
+  // Périmètre
+  organizational_boundary OrganizationalBoundary @default(OPERATIONAL_CONTROL)
+  subcontractors_included Boolean @default(true)
+  boundary_justification String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  id_client String
+  client client @relation(fields: [id_client], references: [id])
+
+  id_mission String?
+  mission mission? @relation(fields: [id_mission], references: [id])
+
+  documents document[]
+  assessments assessment[]
+
+  @@index([id_client])
+  @@index([id_mission])
+}
+
+// ---------------------------------------------------------------------
+// Bilan : un calcul des émissions d'un chantier à un moment donné.
+// Un chantier peut avoir un bilan prévisionnel puis un bilan réel.
+// ---------------------------------------------------------------------
+model assessment {
+  id String @id @default(uuid())
+  type AssessmentType @default(ACTUAL)
+  status AssessmentStatus @default(DRAFT)
+  maturity_level MaturityLevel @default(INITIAL)
+  title String?
+
+  // Résultats mis en cache, recalculés à chaque modification des lignes
+  total_kgco2e Decimal? @db.Decimal(18, 3)
+  total_uncertainty_pct Decimal? @db.Decimal(6, 2)
+  computed_at DateTime?
+
+  validated_at DateTime?
+  sent_at DateTime?
+  report_url String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  id_worksite String
+  worksite worksite @relation(fields: [id_worksite], references: [id], onDelete: Cascade)
+
+  activity_lines activity_line[]
+  actions reduction_action[]
+
+  @@index([id_worksite])
+}
+
+// ---------------------------------------------------------------------
+// Document : un fichier déposé par le professionnel.
+// Rattaché au chantier (et non au bilan) : le même bon de livraison
+// peut servir au bilan prévisionnel et au bilan réel.
+// ---------------------------------------------------------------------
+model document {
+  id String @id @default(uuid())
+  file_name String
+  storage_url String
+  mime_type String
+  size_bytes Int
+  sha256 String                // détecte un fichier déposé deux fois
+  detected_type DocumentType @default(UNKNOWN)
+  extraction_status ExtractionJobStatus @default(PENDING)
+  extraction_error String?
+  uploaded_at DateTime @default(now())
+
+  id_worksite String
+  worksite worksite @relation(fields: [id_worksite], references: [id], onDelete: Cascade)
+
+  extractions extraction[]
+
+  @@unique([id_worksite, sha256])
+  @@index([id_worksite])
+}
+
+// ---------------------------------------------------------------------
+// Extraction : une proposition de l'IA, lue dans un document.
+// Elle n'entre dans aucun calcul tant qu'elle n'est pas acceptée.
+// ---------------------------------------------------------------------
+model extraction {
+  id String @id @default(uuid())
+  page Int?
+  bounding_box Json?           // zone lue, pour la surligner dans l'écran de revue
+  raw_values Json              // tout ce que l'IA a lu, tel quel
+  product_label String?
+  quantity Decimal? @db.Decimal(18, 6)
+  unit Unit?
+  document_date DateTime?
+  supplier_name String?
+  supplier_address String?
+  confidence Decimal @db.Decimal(4, 3) // 0.000 à 1.000
+  status ExtractionStatus @default(PROPOSED)
+  correction Json?             // ce que le professionnel a changé (sert à mesurer l'IA)
+  reviewed_at DateTime?
+  created_at DateTime @default(now())
+
+  id_document String
+  document document @relation(fields: [id_document], references: [id], onDelete: Cascade)
+
+  // Propositions de l'IA (choisies dans les listes fermées, jamais inventées)
+  id_proposed_category String?
+  proposed_category emission_category? @relation(fields: [id_proposed_category], references: [id])
+  id_proposed_factor String?
+  proposed_factor emission_factor? @relation(fields: [id_proposed_factor], references: [id])
+
+  activity_line activity_line?   // la ligne créée quand l'extraction est acceptée
+
+  @@index([id_document])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------
+// Poste d'émission : table de référence (matériaux, carburant engins…).
+// ---------------------------------------------------------------------
+model emission_category {
+  id String @id @default(uuid())
+  code String @unique          // "1_materiaux", "2_carburant_engins"…
+  label String
+  iso_14064_category String    // poste ISO 14064-1 correspondant
+  bilan_carbone_v9_post String? // poste / sous-poste Bilan Carbone v9
+  is_direct Boolean
+  sort_order Int @default(0)
+
+  emission_factors emission_factor[]
+  activity_lines activity_line[]
+  proposed_in extraction[]
+}
+
+// ---------------------------------------------------------------------
+// Facteur d'émission : copie locale des FE utiles (Base Empreinte),
+// plus les FE personnalisés d'un professionnel.
+// ---------------------------------------------------------------------
+model emission_factor {
+  id String @id @default(uuid())
+  source EmissionFactorSource @default(BASE_EMPREINTE)
+  external_id String?          // Identifiant_de_l'élément dans la Base Empreinte
+  name String
+  attribute String?
+  boundary String?             // ex. "Diesel routier, incorporation 7 % de biodiesel"
+  value_kgco2e Decimal @db.Decimal(18, 6) // kgCO2e par unité
+  per_unit Unit                // l'unité au dénominateur
+  uncertainty_pct Decimal? @db.Decimal(6, 2)
+  scope_note String?           // "amont + combustion"…
+  location String @default("France continentale")
+  status EmissionFactorStatus @default(VALID_GENERIC)
+  source_reference String?     // URL, n° de FDES… (obligatoire pour CUSTOM, contrôlé dans le code)
+  database_version String?     // version de la Base Empreinte
+  retrieved_at DateTime @default(now())
+  created_at DateTime @default(now())
+
+  id_default_category String?
+  default_category emission_category? @relation(fields: [id_default_category], references: [id])
+
+  // Rempli uniquement pour un FE personnalisé
+  id_consultant String?
+  consultant consultant? @relation(fields: [id_consultant], references: [id])
+
+  activity_lines activity_line[]
+  proposed_in extraction[]
+  alternative_in reduction_action[]
+
+  @@index([external_id])
+  @@index([id_default_category])
+}
+
+// ---------------------------------------------------------------------
+// Ligne d'activité : une quantité × un FE = des émissions.
+// Le FE est COPIÉ dans la ligne (fe_*) au moment du calcul : si l'ADEME
+// met sa base à jour, un bilan déjà validé ne change pas.
+// ---------------------------------------------------------------------
+model activity_line {
+  id String @id @default(uuid())
+  label String
+
+  // Quantité telle que lue / saisie
+  input_quantity Decimal @db.Decimal(18, 6)
+  input_unit Unit
+  // Conversion éventuelle (ex. m³ → tonnes avec une densité)
+  conversion_factor Decimal? @db.Decimal(12, 6)
+  conversion_note String?      // "béton 2,4 t/m³"
+  // Quantité utilisée dans le calcul, dans l'unité du FE
+  calc_quantity Decimal @db.Decimal(18, 6)
+  calc_unit Unit
+
+  // Copie du FE au moment du calcul
+  fe_value_kgco2e Decimal @db.Decimal(18, 6)
+  fe_label String
+  fe_uncertainty_pct Decimal? @db.Decimal(6, 2)
+  fe_database_version String?
+
+  data_uncertainty_pct Decimal @db.Decimal(6, 2)
+  data_origin DataOrigin
+  entry_mode EntryMode @default(MANUAL)
+
+  result_kgco2e Decimal @db.Decimal(18, 3)
+  line_uncertainty_pct Decimal @db.Decimal(6, 2)
+
+  is_validated Boolean @default(false)
+  validated_at DateTime?
+  comment String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  id_assessment String
+  assessment assessment @relation(fields: [id_assessment], references: [id], onDelete: Cascade)
+
+  id_category String
+  category emission_category @relation(fields: [id_category], references: [id])
+
+  id_emission_factor String
+  emission_factor emission_factor @relation(fields: [id_emission_factor], references: [id])
+
+  // Lien vers l'extraction IA d'origine (une extraction = au plus une ligne)
+  id_extraction String? @unique
+  extraction extraction? @relation(fields: [id_extraction], references: [id])
+
+  actions reduction_action[]
+
+  @@index([id_assessment])
+  @@index([id_category])
+}
+
+// ---------------------------------------------------------------------
+// Levier de réduction : ex. remplacer le GNR par du HVO sur une ligne.
+// ---------------------------------------------------------------------
+model reduction_action {
+  id String @id @default(uuid())
+  label String
+  description String?
+  estimated_reduction_kgco2e Decimal? @db.Decimal(18, 3)
+  status ActionStatus @default(PROPOSED)
+  created_at DateTime @default(now())
+
+  id_assessment String
+  assessment assessment @relation(fields: [id_assessment], references: [id], onDelete: Cascade)
+
+  // Ligne concernée et FE de remplacement (optionnels)
+  id_activity_line String?
+  activity_line activity_line? @relation(fields: [id_activity_line], references: [id])
+
+  id_alternative_factor String?
+  alternative_factor emission_factor? @relation(fields: [id_alternative_factor], references: [id])
+
+  @@index([id_assessment])
 }
