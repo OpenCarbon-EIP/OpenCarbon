@@ -480,4 +480,14 @@ export class CompanyService {
       company: membership.company,
     };
   }
+
+  async getCompanyByUserIdOrThrow(userId: string): Promise<company> {
+    const result = await this.getUserCompany(userId);
+
+    if (!result) {
+      throw new NotFoundException('Company profile not found');
+    }
+
+    return result.company;
+  }
 }

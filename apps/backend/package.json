@@ -12,6 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "npx prisma migrate deploy && node dist/main",
+    "db:seed": "pnpm run build && node dist/prisma/seed.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "NODE_OPTIONS='--require ./test/node-preload.js' jest",
     "test:watch": "NODE_OPTIONS='--require ./test/node-preload.js' jest --watch",
